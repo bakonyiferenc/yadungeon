@@ -73,7 +73,6 @@ MainLoop:			// <- self modifying
 Loop:	GetKey()
 	jsr	ProcessCommand
 	bcc	Loop		// Loop until a turn has passed
-	PrintPlayer()
 }
 
 //----------------------------------------------------------
@@ -211,8 +210,72 @@ Details:
 	sta	_oy
 }
 
+.macro	AdjustOffset() {
+	jsr	_AdjustOffset
+}
+
+_AdjustOffset:
+	lda	MonsterX
+	sec
+	sbc	OffsetX
+	sbc	#DUNGEONW * 1 / 4
+	bcc	AdjLeft
+	cmp	#DUNGEONW * 2 / 4
+	bcs	AdjRight
+AdjY:	lda	MonsterY
+	sec
+	sbc	OffsetY
+	sbc	#DUNGEONH * 1 / 4
+	bcc	AdjDown
+	cmp	#DUNGEONH * 2 / 4
+	bcs	AdjUp
+AdjEnd:	rts
+AdjRight:
+	lda	OffsetX
+	cmp	ox1:#0
+	beq	AdjY		// skip Redraw
+	clc
+	adc	#DUNGEONW * 1 / 4
+	cmp	ox2:#0
+	bcc	!+
+	lda	ox3:#0
+!:	sta	OffsetX
+	jmp	Redraw		// What about double change (Y)?
+AdjLeft:
+	lda	OffsetX
+	beq	AdjY		// skip Redraw
+	sec
+	sbc	#DUNGEONW * 1 / 4
+	bcs	!+
+	lda	#0
+!:	sta	OffsetX
+	jmp	Redraw		// What about double change (Y)?
+AdjUp:
+	lda	OffsetY
+	cmp	oy1:#0
+	beq	AdjEnd		// skip Redraw
+	clc
+	adc	#DUNGEONH * 1 / 4
+	cmp	oy2:#0
+	bcc	!+
+	lda	oy3:#0
+!:	sta	OffsetY
+	jmp	Redraw		// What about double change (Y)?
+AdjDown:
+	lda	OffsetY
+	beq	AdjEnd		// skip Redraw
+	sec
+	sbc	#DUNGEONH * 1 / 4
+	bcs	!+
+	lda	#0
+!:	sta	OffsetY
+//	jmp	Redraw		// What about double change (Y)?
+
+Redraw:	OffsetUpdated()
+	DrawScene()
+	rts
+
 _DrawScene:
-	OffsetUpdated()
 	lda	_screen0:#0
 	sta	screen
 	lda	_screen1:#0
@@ -250,6 +313,16 @@ x:	dex
 
 _RenderTile:
 	RenderBorder()
+
+	cpx	#40		// Test tunnels
+	bne	!+
+	lda	#'.'
+	rts
+!:	cpy	#10
+	bne	!+
+	lda	#'.'
+	rts
+!:
 	RenderRoom(16, 16, 1/30)
 	RenderRoom(8, 8, 1/16)
 	RenderRoom(16, 1, 1/8)
@@ -369,7 +442,8 @@ ProcessCommand:
 .if (x ==  1)	inc	MonsterX
 .if (y == -1)	dec	MonsterY
 .if (y ==  1)	inc	MonsterY
-	//dec	OffsetX
+	AdjustOffset()
+	PrintPlayer()
 	sec
 End:	rts
 }
@@ -504,6 +578,7 @@ _EnterDungeon:
 	lda	#2
 	sta	OffsetX
 	sta	OffsetY
+	OffsetUpdated()
 
 	lda	MonsterZ
 	bne	!+		// Wilderness has a fixed size
@@ -513,7 +588,7 @@ _EnterDungeon:
 	lda	#$fe
 	sta	DungeonMaxX
 	sta	DungeonMaxY
-	rts
+	jmp	!++
 !:				// Calculate dungeon size
 	HashA()
 	tay
@@ -530,6 +605,19 @@ _EnterDungeon:
 	tax
 	dex
 	stx	DungeonMaxY
+
+!:	lda	DungeonW	// For AdjustOffset()
+	sec
+	sbc	#DUNGEONW
+	sta	ox1
+	sta	ox2
+	sta	ox3
+	lda	DungeonH	// For AdjustOffset()
+	sec
+	sbc	#DUNGEONH
+	sta	oy1
+	sta	oy2
+	sta	oy3
 	rts
 
 //----------------------------------------------------------
@@ -715,7 +803,7 @@ OffsetY:	.byte	0
 //
 //----------------------------------------------------------
 
-DungeonW:	.byte	0
+DungeonW:	.byte	0	// Size of current dungeon
 DungeonH:	.byte	0
 DungeonMaxX:	.byte	0
 DungeonMaxY:	.byte	0

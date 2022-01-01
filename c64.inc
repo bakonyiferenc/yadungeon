@@ -18,5 +18,5 @@
 //----------------------------------------------------------
 
 .const	DUNGEONOFFSET	=	SCREENW + 11
-.const	DUNGEONW	=	29
+.const	DUNGEONW	=	29	// dungeon display size
 .const	DUNGEONH	=	24
