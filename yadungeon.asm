@@ -46,6 +46,18 @@ MainLoop:			// <- self modifying
 	InitRnd()
 	InitHash()
 
+	ldx	#0
+	txa
+Loop:	sta	Monster, x
+	sta	MonsterX, x
+	sta	MonsterY, x
+	sta	MonsterZ, x
+	sta	MonsterHP, x
+	sta	MonsterState1, x
+	sta	MonsterState2, x
+	inx
+	bne	Loop
+
 	lda	#1		// Reset turn counter
 	sta	Turn
 	lda	#0
@@ -53,12 +65,10 @@ MainLoop:			// <- self modifying
 	sta	Turn+2
 
 	lda	#100		// Dummy character creation
-	sta	MonsterHP
-	lda	#$00		// '@'
-	sta	Monster
+	sta	PlayerHP
 
 	lda	#1		// Start from City1
-	sta	MonsterZ
+	sta	PlayerZ
 	
 	EnterDungeon()
 }
@@ -86,7 +96,7 @@ Loop:	GetKey()
 	and	#7
 	bne	End
 	Print(@"\$13Monsters hit you! ")
-	dec	MonsterHP
+	dec	PlayerHP
 End:
 }
 
@@ -97,7 +107,7 @@ End:
 //----------------------------------------------------------
 
 .macro	IsPlayerAlive() {
-	lda	MonsterHP
+	lda	PlayerHP
 	bne	Alive
 Dead:	Print(@"\$13You died! ")
 	QuitGame()
@@ -124,7 +134,7 @@ Alive:
 .macro	QuickStats() {
 	PrintC($13)		// home
 	PrintC($11)		// down
-	ldx	MonsterZ
+	ldx	PlayerZ
 	beq	Wilderness
 	txa
 	and	#~$07
@@ -157,16 +167,16 @@ Details:
 
 	PrintC('@')
 	Print(@"\nx: ")
-	lda	MonsterX
+	lda	PlayerX
 	PrintA()
 	Print(@" \ny: ")
-	lda	MonsterY
+	lda	PlayerY
 	PrintA()
 	Print(@" \nz: ")
-	lda	MonsterZ
+	lda	PlayerZ
 	PrintA()
 	Print(@" \nHP: ")
-	lda	MonsterHP
+	lda	PlayerHP
 	PrintA()
 
 	Print(@" \nturn: ")
@@ -215,14 +225,14 @@ Details:
 }
 
 _AdjustOffset:
-	lda	MonsterX
+	lda	PlayerX
 	sec
 	sbc	OffsetX
 	sbc	#DUNGEONW * 1 / 4
 	bcc	AdjLeft
 	cmp	#DUNGEONW * 2 / 4
 	bcs	AdjRight
-AdjY:	lda	MonsterY
+AdjY:	lda	PlayerY
 	sec
 	sbc	OffsetY
 	sbc	#DUNGEONH * 1 / 4
@@ -356,7 +366,7 @@ End:
 	tya
 	and	#-ysize	// block size Y: $f0 = 16, $f8 = 8, $fc = 4, etc
 	eor	xc:#0
-	HashAwithM(MonsterZ)
+	HashAwithM(PlayerZ)
 
 	cmp	#256 * chance	// block chance: $40:$100 = 1:4
 	bcs	End
@@ -426,8 +436,8 @@ ProcessCommand:
 //----------------------------------------------------------
 
 .macro	MovePlayerBy(x, y) {
-	ldx	MonsterX
-	ldy	MonsterY
+	ldx	PlayerX
+	ldy	PlayerY
 .if (x == -1)	dex
 .if (x ==  1)	inx
 .if (y == -1)	dey
@@ -435,13 +445,13 @@ ProcessCommand:
 	RenderTile()
 	cmp	#'.'
 	bne	End
-//.if (x != 0)	stx	MonsterX
-//.if (y != 0)	sty	MonsterY
+//.if (x != 0)	stx	PlayerX
+//.if (y != 0)	sty	PlayerY
 	HidePlayer()
-.if (x == -1)	dec	MonsterX
-.if (x ==  1)	inc	MonsterX
-.if (y == -1)	dec	MonsterY
-.if (y ==  1)	inc	MonsterY
+.if (x == -1)	dec	PlayerX
+.if (x ==  1)	inc	PlayerX
+.if (y == -1)	dec	PlayerY
+.if (y ==  1)	inc	PlayerY
 	AdjustOffset()
 	PrintPlayer()
 	sec
@@ -481,7 +491,7 @@ Command_q:
 Command_r:	
 	Print(@"\$13Resting to full HP\n")
 	lda	#250
-	sta	MonsterHP
+	sta	PlayerHP
 	sec
 	rts
 
@@ -491,13 +501,13 @@ Command_z:
 	rts
 
 Command_upstairs:
-	dec	MonsterZ
+	dec	PlayerZ
 	EnterDungeon()
 	sec
 	rts
 
 Command_downstairs:
-	inc	MonsterZ
+	inc	PlayerZ
 	EnterDungeon()
 	sec
 	rts
@@ -530,15 +540,15 @@ CommandTable:
 }
 
 .macro	HidePlayer() {
-	ldx	MonsterX
-	ldy	MonsterY
+	ldx	PlayerX
+	ldy	PlayerY
 	RenderTile()
 	sta	tile
-	lda	MonsterX
+	lda	PlayerX
 	sec
 	sbc	OffsetX
 	tax
-	lda	MonsterY
+	lda	PlayerY
 	sec
 	sbc	OffsetY
 	tay
@@ -547,15 +557,15 @@ CommandTable:
 }
 
 .macro	PrintPlayer() {
-	lda	MonsterX
+	lda	PlayerX
 	sec
 	sbc	OffsetX
 	tax
-	lda	MonsterY
+	lda	PlayerY
 	sec
 	sbc	OffsetY
 	tay
-	lda	Monster
+	lda	#00		// '@'
 	PrintTile()
 }
 
@@ -564,7 +574,12 @@ DungeonLo:
 DungeonHi:
 .for(var i = DUNGEONH - 1 ; i >= 0 ; i--) .byte >(SCREENADDR + DUNGEONOFFSET + i * SCREENW)
 
-// Returns key in A
+//----------------------------------------------------------
+//
+//	Called upon entering a new level
+//
+//----------------------------------------------------------
+
 .macro	EnterDungeon() {
 	jsr	_EnterDungeon
 	DrawScene()
@@ -573,14 +588,14 @@ DungeonHi:
 
 _EnterDungeon:
 	lda	#10		// Entry point
-	sta	MonsterX
-	sta	MonsterY
+	sta	PlayerX
+	sta	PlayerY
 	lda	#2
 	sta	OffsetX
 	sta	OffsetY
 	OffsetUpdated()
 
-	lda	MonsterZ
+	lda	PlayerZ
 	bne	!+		// Wilderness has a fixed size
 	lda	#$ff
 	sta	DungeonW
@@ -592,14 +607,14 @@ _EnterDungeon:
 !:				// Calculate dungeon size
 	HashA()
 	tay
-	and	MonsterZ
+	and	PlayerZ
 	ora	#20
 	sta	DungeonW
 	tax
 	dex
 	stx	DungeonMaxX
 	tya
-	and	MonsterZ
+	and	PlayerZ
 	ora	#16
 	sta	DungeonH
 	tax
@@ -781,17 +796,26 @@ noEor:	sta	Hash, x
 //
 //----------------------------------------------------------
 
-        *=$1000 "Data Tables" virtual
-Monster:	.fill 256, 0	// Monster 0 is the Player
+.align	256
+Monster:	.fill 256, 0
 MonsterX:	.fill 256, 0
 MonsterY:	.fill 256, 0
 MonsterZ:	.fill 256, 0	// Current dungeon: 0 = wilderness, 1-7 = cities, 8-255 = dungeons
 MonsterHP:	.fill 256, 0
+MonsterState1:	.fill 256, 0	// aggroed, sleeping, confused, stunned, feared, afraid, blind, deaf
+MonsterState2:	.fill 256, 0	// poisoned, bleeding, fast/slow/paralyzed, drugged, invulnerable
 
 Rnd1:		.fill 256, 0
 Rnd2:		.fill 256, 0
 Hash:		.fill 256, 0
 Seed:		.word	0
+
+PlayerX:	.byte	0
+PlayerY:	.byte	0
+PlayerZ:	.byte	0
+PlayerHP:	.byte	0
+PlayerState1:	.byte	0
+PlayerState2:	.byte	0
 
 Turn:		.byte	0, 0, 0
 OffsetX:	.byte	0	// To center the dungeon around the player
