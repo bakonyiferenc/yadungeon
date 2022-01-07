@@ -189,10 +189,12 @@ Details:
 //
 //----------------------------------------------------------
 
+// Draws the whole scene, visible or not.
 .macro	DrawScene() {
 	jsr	_DrawScene
 }
 
+// Must be called when Offset{XY} was changed.
 .macro	OffsetUpdated() {
 	lda	#<(SCREENADDR + DUNGEONOFFSET)
 	sec
@@ -220,6 +222,7 @@ Details:
 	sta	_oy
 }
 
+// Must be called when Player{XY} was changed. Scrolls the screen when needed.
 .macro	AdjustOffset() {
 	jsr	_AdjustOffset
 }
@@ -529,11 +532,33 @@ CommandTable:
 //
 //----------------------------------------------------------
 
-.macro	PrintTile() {
+// Prints a char at a given window position
+// X, Y: window relative coordinates, A: character to print
+.macro	PrintWindowTile() {
 	sta	char
-	lda	DungeonLo, y
+	lda	WindowLo, y
 	sta	pos
-	lda	DungeonHi, y
+	lda	WindowHi, y
+	sta	pos+1
+	lda	char:#0
+	sta	pos:SCREENADDR, x
+}
+
+// Prints a char at a given dungeon position
+// X, Y: dungeon relative coordinates, A: character to print
+.macro	PrintDungeonTile() {
+	sta	char
+	txa
+	sec
+	sbc	OffsetX
+	tax
+	tya
+	sec
+	sbc	OffsetY
+	tay
+	lda	WindowLo, y
+	sta	pos
+	lda	WindowHi, y
 	sta	pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
@@ -543,35 +568,21 @@ CommandTable:
 	ldx	PlayerX
 	ldy	PlayerY
 	RenderTile()
-	sta	tile
-	lda	PlayerX
-	sec
-	sbc	OffsetX
-	tax
-	lda	PlayerY
-	sec
-	sbc	OffsetY
-	tay
-	lda	tile:#0
-	PrintTile()
+	ldx	PlayerX
+	ldy	PlayerY
+	PrintDungeonTile()
 }
 
 .macro	PrintPlayer() {
-	lda	PlayerX
-	sec
-	sbc	OffsetX
-	tax
-	lda	PlayerY
-	sec
-	sbc	OffsetY
-	tay
+	ldx	PlayerX
+	ldy	PlayerY
 	lda	#00		// '@'
-	PrintTile()
+	PrintDungeonTile()
 }
 
-DungeonLo:
+WindowLo:
 .for(var i = DUNGEONH - 1 ; i >= 0 ; i--) .byte <(SCREENADDR + DUNGEONOFFSET + i * SCREENW)
-DungeonHi:
+WindowHi:
 .for(var i = DUNGEONH - 1 ; i >= 0 ; i--) .byte >(SCREENADDR + DUNGEONOFFSET + i * SCREENW)
 
 //----------------------------------------------------------
@@ -679,7 +690,8 @@ End:
 	jsr	$BDCD
 }
 
-// Prints a char at a given position
+// Prints a char at a given screen position
+// X, Y: screen relative coordinates, A: character to print
 .macro	PrintCXY(char) {
 	lda	RowsLo, y
 	sta	pos
