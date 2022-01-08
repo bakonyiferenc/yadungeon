@@ -189,28 +189,75 @@ Details:
 //
 //----------------------------------------------------------
 
-// Draws the whole scene, visible or not.
-.macro	DrawScene() {
-	jsr	_DrawScene
+// Draws the visible part of scene.
+.macro	DrawVisibleScene() {
+	jsr	_DrawVisibleScene
 }
+
+_DrawVisibleScene:
+	ldx	PlayerX
+	ldy	PlayerY
+	iny
+	RenderTile()
+	PrintDungeonTile()
+	ldx	PlayerX
+	ldy	PlayerY
+	dey
+	RenderTile()
+	PrintDungeonTile()
+	ldx	PlayerX
+	inx
+	ldy	PlayerY
+	RenderTile()
+	PrintDungeonTile()
+	ldx	PlayerX
+	dex
+	ldy	PlayerY
+	RenderTile()
+	PrintDungeonTile()
+	ldx	PlayerX
+	inx
+	ldy	PlayerY
+	iny
+	RenderTile()
+	PrintDungeonTile()
+	ldx	PlayerX
+	inx
+	ldy	PlayerY
+	dey
+	RenderTile()
+	PrintDungeonTile()
+	ldx	PlayerX
+	dex
+	ldy	PlayerY
+	dey
+	RenderTile()
+	PrintDungeonTile()
+	ldx	PlayerX
+	dex
+	ldy	PlayerY
+	iny
+	RenderTile()
+	PrintDungeonTile()
+	rts
 
 // Must be called when Offset{XY} was changed.
 .macro	OffsetUpdated() {
-	lda	#<(SCREENADDR + DUNGEONOFFSET)
+	lda	#<(SCREENADDR + SCENEOFFSET)
 	sec
 	sbc	OffsetX
 	sta	_screen0
 
-	lda	#>(SCREENADDR + DUNGEONOFFSET)
+	lda	#>(SCREENADDR + SCENEOFFSET)
 	sbc	#0
 	sta	_screen1
 
-	lda	#DUNGEONW
+	lda	#SCENEW
 	clc
 	adc	OffsetX
 	sta	_x
 
-	lda	#DUNGEONH
+	lda	#SCENEH
 	clc
 	adc	OffsetY
 	sta	_y
@@ -222,7 +269,7 @@ Details:
 	sta	_oy
 }
 
-// Must be called when Player{XY} was changed. Scrolls the screen when needed.
+// Must be called when Player{XY} was changed. Scrolls the scene when needed.
 .macro	AdjustOffset() {
 	jsr	_AdjustOffset
 }
@@ -231,62 +278,148 @@ _AdjustOffset:
 	lda	PlayerX
 	sec
 	sbc	OffsetX
-	sbc	#DUNGEONW * 1 / 4
+	sbc	#SCENEW * 1 / 4
 	bcc	AdjLeft
-	cmp	#DUNGEONW * 2 / 4
+	cmp	#SCENEW * 2 / 4
 	bcs	AdjRight
 AdjY:	lda	PlayerY
 	sec
 	sbc	OffsetY
-	sbc	#DUNGEONH * 1 / 4
+	sbc	#SCENEH * 1 / 4
 	bcc	AdjDown
-	cmp	#DUNGEONH * 2 / 4
+	cmp	#SCENEH * 2 / 4
 	bcs	AdjUp
 AdjEnd:	rts
+
 AdjRight:
 	lda	OffsetX
 	cmp	ox1:#0
-	beq	AdjY		// skip Redraw
+	beq	AdjY		// already at the far end, skip scroll
 	clc
-	adc	#DUNGEONW * 1 / 4
+	adc	#SCENEW * 1 / 4
 	cmp	ox2:#0
 	bcc	!+
 	lda	ox3:#0
-!:	sta	OffsetX
-	jmp	Redraw		// What about double change (Y)?
+!:	jmp	ScrollLeft	// What about double change (Y)?
 AdjLeft:
 	lda	OffsetX
-	beq	AdjY		// skip Redraw
+	beq	AdjY		// already at the far end, skip scroll
 	sec
-	sbc	#DUNGEONW * 1 / 4
+	sbc	#SCENEW * 1 / 4
 	bcs	!+
 	lda	#0
-!:	sta	OffsetX
-	jmp	Redraw		// What about double change (Y)?
+!:	jmp	ScrollRight	// What about double change (Y)?
 AdjUp:
 	lda	OffsetY
 	cmp	oy1:#0
-	beq	AdjEnd		// skip Redraw
+	beq	AdjEnd		// already at the far end, skip scroll
 	clc
-	adc	#DUNGEONH * 1 / 4
+	adc	#SCENEH * 1 / 4
 	cmp	oy2:#0
 	bcc	!+
 	lda	oy3:#0
 !:	sta	OffsetY
-	jmp	Redraw		// What about double change (Y)?
+	jmp	ScrollDown	// What about double change (Y)?
 AdjDown:
 	lda	OffsetY
-	beq	AdjEnd		// skip Redraw
+	beq	AdjEnd		// already at the far end, skip scroll
 	sec
-	sbc	#DUNGEONH * 1 / 4
+	sbc	#SCENEH * 1 / 4
 	bcs	!+
 	lda	#0
 !:	sta	OffsetY
-//	jmp	Redraw		// What about double change (Y)?
+	jmp	ScrollUp	// What about double change (Y)?
 
-Redraw:	OffsetUpdated()
+ScrollRight: {
+	ldx	OffsetX		// X: old OffsetX
+	sta	OffsetX		// A: new OffsetX
+	stx	x
+	sec
+	sbc	x:#0
+	clc
+	adc	#SCENEW - 1
+	tax			// SCENEW - (X - A) - 1
+	ldy	#SCENEW - 1
+MoveColumn:
+.for(var i = SCENEH - 1 ; i >= 0 ; i--) {
+	lda	SCREENADDR + SCENEOFFSET + i * SCREENW, x
+	sta	SCREENADDR + SCENEOFFSET + i * SCREENW, y
+}
+	dey
+	dex
+	bmi	Done
+	jmp	MoveColumn
+Done:	lda	#' '
+ClearColumn:
+.for(var i = SCENEH - 1 ; i >= 0 ; i--) {
+	sta	SCREENADDR + SCENEOFFSET + i * SCREENW, y
+}
+	dey
+	bmi	End
+	jmp	ClearColumn
+End:	jmp	Scrolled
+}
+
+ScrollLeft: {
+	ldx	OffsetX		// X: old OffsetX
+	sta	OffsetX		// A: new OffsetX
+	stx	x
+	sec
+	sbc	x:#0
+	clc
+	adc	#-SCENEW
+	tax			// -SCENEW + (A - X)
+	ldy	#-SCENEW
+MoveColumn:
+.for(var i = SCENEH - 1 ; i >= 0 ; i--) {
+	lda	SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256, x
+	sta	SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256, y
+}
+	iny
+	inx
+	bpl	Done
+	jmp	MoveColumn
+Done:	lda	#' '
+ClearColumn:
+.for(var i = SCENEH - 1 ; i >= 0 ; i--) {
+	sta	SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256, y
+}
+	iny
+	bpl	End
+	jmp	ClearColumn
+End:	jmp	Scrolled
+}
+
+ScrollDown:
+ScrollUp:
+	OffsetUpdated()
 	DrawScene()
 	rts
+Scrolled:
+	OffsetUpdated()
+	rts
+
+// Draws the whole scene, visible or not.
+.macro	DrawScene() {
+	lda	#JSR_ABS
+	sta	_tile
+	lda	#<_RenderTile
+	sta	_tile+1
+	lda	#>_RenderTile
+	sta	_tile+2
+	jsr	_DrawScene
+}
+
+// Clears the whole scene
+.macro	ClearScene() {
+	lda	#NOP
+	sta	_tile
+	lda	#LDA_IMM
+	sta	_tile+1
+	lda	#' '
+	sta	_tile+2
+	jsr	_DrawScene
+}
 
 _DrawScene:
 	lda	_screen0:#0
@@ -298,7 +431,7 @@ _DrawScene:
 y:	dey
 	ldx	_x:#0
 x:	dex
-	RenderTile()
+_tile:	RenderTile()
 	sta	screen:SCREENADDR, x
 	cpx	_ox:#0
 	bne	x
@@ -456,6 +589,7 @@ ProcessCommand:
 .if (y == -1)	dec	PlayerY
 .if (y ==  1)	inc	PlayerY
 	AdjustOffset()
+	DrawVisibleScene()
 	PrintPlayer()
 	sec
 End:	rts
@@ -483,6 +617,13 @@ CommandSelf:
 Command_a:	
 	Print(@"\$13'a' command received, aim wand\n")
 	sec
+	rts
+
+Command_l:
+	Print(@"\$13Look around\n")
+	DrawScene()
+	PrintPlayer()
+	clc
 	rts
 
 Command_q:	
@@ -519,7 +660,9 @@ Command_downstairs:
 CommandTable:
 .word	CommandSelf	// @
 .word	Command_a	// a
-.fillword	'q'-'b', CommandFoo
+.fillword	'l'-'b', CommandFoo
+.word	Command_l
+.fillword	'q'-'m', CommandFoo
 .word	Command_q
 .word	Command_r
 .fillword	'z'-'s', CommandFoo
@@ -581,9 +724,9 @@ CommandTable:
 }
 
 WindowLo:
-.for(var i = DUNGEONH - 1 ; i >= 0 ; i--) .byte <(SCREENADDR + DUNGEONOFFSET + i * SCREENW)
+.for(var i = SCENEH - 1 ; i >= 0 ; i--) .byte <(SCREENADDR + SCENEOFFSET + i * SCREENW)
 WindowHi:
-.for(var i = DUNGEONH - 1 ; i >= 0 ; i--) .byte >(SCREENADDR + DUNGEONOFFSET + i * SCREENW)
+.for(var i = SCENEH - 1 ; i >= 0 ; i--) .byte >(SCREENADDR + SCENEOFFSET + i * SCREENW)
 
 //----------------------------------------------------------
 //
@@ -593,7 +736,8 @@ WindowHi:
 
 .macro	EnterDungeon() {
 	jsr	_EnterDungeon
-	DrawScene()
+	ClearScene()
+	DrawVisibleScene()
 	PrintPlayer()
 }
 
@@ -634,13 +778,13 @@ _EnterDungeon:
 
 !:	lda	DungeonW	// For AdjustOffset()
 	sec
-	sbc	#DUNGEONW
+	sbc	#SCENEW
 	sta	ox1
 	sta	ox2
 	sta	ox3
 	lda	DungeonH	// For AdjustOffset()
 	sec
-	sbc	#DUNGEONH
+	sbc	#SCENEH
 	sta	oy1
 	sta	oy2
 	sta	oy3
