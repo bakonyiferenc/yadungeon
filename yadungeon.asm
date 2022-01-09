@@ -675,13 +675,13 @@ CommandTable:
 //
 //----------------------------------------------------------
 
-// Prints a char at a given window position
-// X, Y: window relative coordinates, A: character to print
-.macro	PrintWindowTile() {
+// Prints a char at given scene coordinates
+// X, Y: scene relative coordinates, A: character to print
+.macro	PrintSceneTile() {
 	sta	char
-	lda	WindowLo, y
+	lda	SceneLo, y
 	sta	pos
-	lda	WindowHi, y
+	lda	SceneHi, y
 	sta	pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
@@ -699,9 +699,9 @@ CommandTable:
 	sec
 	sbc	OffsetY
 	tay
-	lda	WindowLo, y
+	lda	SceneLo, y
 	sta	pos
-	lda	WindowHi, y
+	lda	SceneHi, y
 	sta	pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
@@ -723,9 +723,9 @@ CommandTable:
 	PrintDungeonTile()
 }
 
-WindowLo:
+SceneLo:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) .byte <(SCREENADDR + SCENEOFFSET + i * SCREENW)
-WindowHi:
+SceneHi:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) .byte >(SCREENADDR + SCENEOFFSET + i * SCREENW)
 
 //----------------------------------------------------------
