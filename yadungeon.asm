@@ -233,7 +233,13 @@ _DrawVisibleScene:
 	PrintDungeonTile()
 	rts
 
+//----------------------------------------------------------
+//
+// Updates aux variables. 
 // Must be called when Offset{XY} was changed.
+//
+//----------------------------------------------------------
+
 .macro	OffsetUpdated() {
 	sub OffsetX : #<(SCREENADDR + SCENEOFFSET) : _screenLo
 	lda	#>(SCREENADDR + SCENEOFFSET)
@@ -247,7 +253,13 @@ _DrawVisibleScene:
 	mov	OffsetY : _oy
 }
 
-// Must be called when Player{XY} was changed. Scrolls the scene when needed.
+//----------------------------------------------------------
+//
+// Scrolls the scene when needed.
+// Must be called when Player{XY} was changed.
+//
+//----------------------------------------------------------
+
 .macro	AdjustOffset() {
 	jsr	_AdjustOffset
 }
@@ -260,7 +272,8 @@ _AdjustOffset:
 	bcc	AdjLeft
 	cmp	#SCENEW * 2 / 4
 	bcs	AdjRight
-AdjY:	lda	PlayerY
+AdjY:	
+	lda	PlayerY
 	sec
 	sbc	OffsetY
 	sbc	#SCENEH * 1 / 4
@@ -279,6 +292,7 @@ AdjRight:
 	bcc	!+
 	lda	ox3:#0
 !:	jmp	ScrollLeft	// What about double change (Y)?
+
 AdjLeft:
 	lda	OffsetX
 	beq	AdjY		// already at the far end, skip scroll
@@ -287,6 +301,7 @@ AdjLeft:
 	bcs	!+
 	lda	#0
 !:	jmp	ScrollRight	// What about double change (Y)?
+
 AdjUp:
 	lda	OffsetY
 	cmp	oy1:#0
@@ -297,6 +312,7 @@ AdjUp:
 	bcc	!+
 	lda	oy3:#0
 !:	jmp	ScrollDown	// What about double change (Y)?
+
 AdjDown:
 	lda	OffsetY
 	beq	AdjEnd		// already at the far end, skip scroll
@@ -471,14 +487,24 @@ Scrolled:
 	OffsetUpdated()
 	rts
 
+//----------------------------------------------------------
+//
 // Draws the whole scene, visible or not.
+//
+//----------------------------------------------------------
+
 .macro	DrawScene() {
 	mov	#JSR_ABS : _tile
 	mov16 #_RenderTile : _tile+1
 	jsr	_DrawScene
 }
 
+//----------------------------------------------------------
+//
 // Clears the whole scene
+//
+//----------------------------------------------------------
+
 .macro	ClearScene() {
 	mov	#NOP : _tile
 	mov	#LDA_IMM : _tile+1
@@ -762,6 +788,7 @@ CommandTable:
 	sta	pos:SCREENADDR, x
 }
 
+// Replaces Player with underlying tile on screen
 .macro	HidePlayer() {
 	ldx	PlayerX
 	ldy	PlayerY
@@ -771,6 +798,7 @@ CommandTable:
 	PrintDungeonTile()
 }
 
+// Makes Player visible
 .macro	PrintPlayer() {
 	ldx	PlayerX
 	ldy	PlayerY
@@ -796,7 +824,7 @@ SceneHi:
 	PrintPlayer()
 }
 
-_EnterDungeon:
+_EnterDungeon: {
 	lda	#10		// Entry point
 	sta	PlayerX
 	sta	PlayerY
@@ -806,15 +834,15 @@ _EnterDungeon:
 	OffsetUpdated()
 
 	lda	PlayerZ
-	bne	!+		// Wilderness has a fixed size
+	bne	Regular		// Wilderness has a fixed size
 	lda	#$ff
 	sta	DungeonW
 	sta	DungeonH
 	lda	#$fe
 	sta	DungeonMaxX
 	sta	DungeonMaxY
-	jmp	!++
-!:				// Calculate dungeon size
+	jmp	Done
+Regular:			// Calculate regular dungeon size
 	HashA()
 	tay
 	and	PlayerZ
@@ -831,7 +859,7 @@ _EnterDungeon:
 	dex
 	stx	DungeonMaxY
 
-!:	lda	DungeonW	// For AdjustOffset()
+Done:	lda	DungeonW	// For AdjustOffset()
 	sec
 	sbc	#SCENEW
 	sta	ox1
@@ -844,6 +872,7 @@ _EnterDungeon:
 	sta	oy2
 	sta	oy3
 	rts
+}
 
 //----------------------------------------------------------
 //
@@ -851,6 +880,7 @@ _EnterDungeon:
 //
 //----------------------------------------------------------
 
+// Prints a constant string
 .macro	Print(string) {
 	ldy	#0
 Loop:	lda	Output,y
@@ -882,7 +912,7 @@ End:
 	PrintX()
 }
 
-// Prints the 16 bit decimal value
+// Prints a 16 bit decimal value
 .macro	PrintN16(arg) {
 	ldx	arg
 	lda	arg + 1
