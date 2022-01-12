@@ -318,8 +318,7 @@ AdjUp:
 	cmp	oy2:#0
 	bcc	!+
 	lda	oy3:#0
-!:	sta	OffsetY
-	jmp	ScrollDown	// What about double change (Y)?
+!:	jmp	ScrollDown	// What about double change (Y)?
 AdjDown:
 	lda	OffsetY
 	beq	AdjEnd		// already at the far end, skip scroll
@@ -327,8 +326,7 @@ AdjDown:
 	sbc	#SCENEH * 1 / 4
 	bcs	!+
 	lda	#0
-!:	sta	OffsetY
-	jmp	ScrollUp	// What about double change (Y)?
+!:	jmp	ScrollUp	// What about double change (Y)?
 
 ScrollRight: {
 	ldx	OffsetX		// X: old OffsetX
@@ -390,11 +388,105 @@ ClearColumn:
 End:	jmp	Scrolled
 }
 
-ScrollDown:
-ScrollUp:
-	OffsetUpdated()
-	DrawScene()
-	rts
+.macro	ScrollDownBy(n, exit) {
+.for(var i = SCENEH - 1 ; i >= n ; i--) {
+	lda	SCREENADDR + SCENEOFFSET + (i - n) * SCREENW - 1, x
+	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
+}
+	lda	#' '
+.for(var i = n - 1 ; i >= 0 ; i--) {
+	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
+}
+	jmp	exit
+}
+
+.macro ScrollUpBy(n, exit) {
+.for(var i = 0 ; i < SCENEH - n ; i++) {
+	lda	SCREENADDR + SCENEOFFSET + (i + n) * SCREENW - 1, x
+	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
+}
+	lda	#' '
+.for(var i = SCENEH - n ; i < SCENEH ; i++) {
+	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
+}
+	jmp	exit
+}
+
+ScrollDown: {
+	ldy	OffsetY		// Y: old OffsetY
+	sta	OffsetY		// A: new OffsetY
+	iny
+	sty	y
+	sec
+	sbc	y:#0
+	asl
+	clc
+	adc	#<ScrollDownTable
+	sta	Scroll
+	lda	#0
+	adc	#>ScrollDownTable
+	sta	Scroll+1
+	ldx	#SCENEW
+Loop:	jmp	Scroll:($beef)
+Next:	dex
+	beq	Done
+	jmp	Loop
+Done:	jmp	Scrolled
+
+ScrollDownTable:
+	.word	ScrollDown1, ScrollDown2, ScrollDown3, ScrollDown4, ScrollDown5, ScrollDown6
+ScrollDown1:
+	ScrollDownBy(1, Next)
+ScrollDown2:
+	ScrollDownBy(2, Next)
+ScrollDown3:
+	ScrollDownBy(3, Next)
+ScrollDown4:
+	ScrollDownBy(4, Next)
+ScrollDown5:
+	ScrollDownBy(5, Next)
+ScrollDown6:
+	ScrollDownBy(6, Next)
+}
+
+ScrollUp: {
+	ldy	OffsetY		// Y: old OffsetY
+	sta	OffsetY		// A: new OffsetY
+	sta	a
+	dey
+	tya
+	sec
+	sbc	a:#0
+	asl
+	clc
+	adc	#<ScrollUpTable
+	sta	Scroll
+	lda	#0
+	adc	#>ScrollUpTable
+	sta	Scroll+1
+	ldx	#SCENEW
+Loop:	jmp	Scroll:($beef)
+Next:	dex
+	beq	Done
+	jmp	Loop
+Done:	jmp	Scrolled
+
+ScrollUpTable:
+	.word	ScrollUp1, ScrollUp2, ScrollUp3, ScrollUp4, ScrollUp5, ScrollUp6
+ScrollUp1:
+	ScrollUpBy(1, Next)
+ScrollUp2:
+	ScrollUpBy(2, Next)
+ScrollUp3:
+	ScrollUpBy(3, Next)
+ScrollUp4:
+	ScrollUpBy(4, Next)
+ScrollUp5:
+	ScrollUpBy(5, Next)
+ScrollUp6:
+	ScrollUpBy(6, Next)
+}
+
 Scrolled:
 	OffsetUpdated()
 	rts
