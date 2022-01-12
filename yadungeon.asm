@@ -58,17 +58,10 @@ Loop:	sta	Monster, x
 	inx
 	bne	Loop
 
-	lda	#1		// Reset turn counter
-	sta	Turn
-	lda	#0
-	sta	Turn+1
-	sta	Turn+2
+	mov24	#1 : Turn	// Reset turn counter
 
-	lda	#100		// Dummy character creation
-	sta	PlayerHP
-
-	lda	#1		// Start from City1
-	sta	PlayerZ
+	mov	#100 : PlayerHP	// Dummy character creation
+	mov	#1 : PlayerZ	// Start from City1
 	
 	EnterDungeon()
 }
@@ -121,8 +114,7 @@ Alive:
 //----------------------------------------------------------
 
 .macro	QuitGame() {
-	lda	#RTS
-	sta	MainLoop
+	mov	#RTS : MainLoop
 }
 
 //----------------------------------------------------------
@@ -243,30 +235,16 @@ _DrawVisibleScene:
 
 // Must be called when Offset{XY} was changed.
 .macro	OffsetUpdated() {
-	lda	#<(SCREENADDR + SCENEOFFSET)
-	sec
-	sbc	OffsetX
-	sta	_screen0
-
+	sub OffsetX : #<(SCREENADDR + SCENEOFFSET) : _screenLo
 	lda	#>(SCREENADDR + SCENEOFFSET)
 	sbc	#0
-	sta	_screen1
+	sta	_screenHi
 
-	lda	#SCENEW
-	clc
-	adc	OffsetX
-	sta	_x
+	add	OffsetX : #SCENEW : _x
+	add	OffsetY : #SCENEH : _y
 
-	lda	#SCENEH
-	clc
-	adc	OffsetY
-	sta	_y
-
-	lda	OffsetX
-	sta	_ox
-
-	lda	OffsetY
-	sta	_oy
+	mov	OffsetX : _ox
+	mov	OffsetY : _oy
 }
 
 // Must be called when Player{XY} was changed. Scrolls the scene when needed.
@@ -340,8 +318,8 @@ ScrollRight: {
 	ldy	#SCENEW - 1
 MoveColumn:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) {
-	lda	SCREENADDR + SCENEOFFSET + i * SCREENW, x
-	sta	SCREENADDR + SCENEOFFSET + i * SCREENW, y
+	.var POS = SCREENADDR + SCENEOFFSET + i * SCREENW
+	mov	POS,x : POS,y
 }
 	dey
 	dex
@@ -370,8 +348,8 @@ ScrollLeft: {
 	ldy	#-SCENEW
 MoveColumn:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) {
-	lda	SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256, x
-	sta	SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256, y
+	.var POS = SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256
+	mov	POS,x : POS,y
 }
 	iny
 	inx
@@ -390,8 +368,9 @@ End:	jmp	Scrolled
 
 .macro	ScrollDownBy(n, exit) {
 .for(var i = SCENEH - 1 ; i >= n ; i--) {
-	lda	SCREENADDR + SCENEOFFSET + (i - n) * SCREENW - 1, x
-	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
+	.var POS1 = SCREENADDR + SCENEOFFSET + (i - n) * SCREENW - 1
+	.var POS2 = SCREENADDR + SCENEOFFSET +  i      * SCREENW - 1
+	mov	POS1,x : POS2,x
 }
 	lda	#' '
 .for(var i = n - 1 ; i >= 0 ; i--) {
@@ -402,8 +381,9 @@ End:	jmp	Scrolled
 
 .macro ScrollUpBy(n, exit) {
 .for(var i = 0 ; i < SCENEH - n ; i++) {
-	lda	SCREENADDR + SCENEOFFSET + (i + n) * SCREENW - 1, x
-	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
+	.var POS1 = SCREENADDR + SCENEOFFSET + (i + n) * SCREENW - 1
+	.var POS2 = SCREENADDR + SCENEOFFSET +  i      * SCREENW - 1
+	mov	POS1,x : POS2,x
 }
 	lda	#' '
 .for(var i = SCENEH - n ; i < SCENEH ; i++) {
@@ -493,30 +473,23 @@ Scrolled:
 
 // Draws the whole scene, visible or not.
 .macro	DrawScene() {
-	lda	#JSR_ABS
-	sta	_tile
-	lda	#<_RenderTile
-	sta	_tile+1
-	lda	#>_RenderTile
-	sta	_tile+2
+	mov	#JSR_ABS : _tile
+	mov16 #_RenderTile : _tile+1
 	jsr	_DrawScene
 }
 
 // Clears the whole scene
 .macro	ClearScene() {
-	lda	#NOP
-	sta	_tile
-	lda	#LDA_IMM
-	sta	_tile+1
-	lda	#' '
-	sta	_tile+2
+	mov	#NOP : _tile
+	mov	#LDA_IMM : _tile+1
+	mov	#' ' : 	_tile+2
 	jsr	_DrawScene
 }
 
 _DrawScene:
-	lda	_screen0:#0
+	lda	_screenLo:#0
 	sta	screen
-	lda	_screen1:#0
+	lda	_screenHi:#0
 	sta	screen+1
 
 	ldy	_y:#0
@@ -527,13 +500,8 @@ _tile:	RenderTile()
 	sta	screen:SCREENADDR, x
 	cpx	_ox:#0
 	bne	x
-	clc
-	lda	screen
-	adc	#SCREENW
-	sta	screen
-	bcc	!+
-	inc	screen+1
-!:	cpy	_oy:#0
+	add16 screen : #SCREENW
+	cpy	_oy:#0
 	bne	y
 	rts
 
@@ -726,8 +694,7 @@ Command_q:
 
 Command_r:	
 	Print(@"\$13Resting to full HP\n")
-	lda	#250
-	sta	PlayerHP
+	mov	#250 : PlayerHP
 	sec
 	rts
 
@@ -771,10 +738,8 @@ CommandTable:
 // X, Y: scene relative coordinates, A: character to print
 .macro	PrintSceneTile() {
 	sta	char
-	lda	SceneLo, y
-	sta	pos
-	lda	SceneHi, y
-	sta	pos+1
+	mov	SceneLo, y : pos
+	mov	SceneHi, y : pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
 }
@@ -791,10 +756,8 @@ CommandTable:
 	sec
 	sbc	OffsetY
 	tay
-	lda	SceneLo, y
-	sta	pos
-	lda	SceneHi, y
-	sta	pos+1
+	mov	SceneLo, y : pos
+	mov	SceneHi, y : pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
 }
@@ -929,19 +892,15 @@ End:
 // Prints a char at a given screen position
 // X, Y: screen relative coordinates, A: character to print
 .macro	PrintCXY(char) {
-	lda	RowsLo, y
-	sta	pos
-	lda	RowsHi, y
-	sta	pos+1
+	mov	RowsLo, y : pos
+	mov	RowsHi, y : pos+1
 	lda	#char
 	sta	pos:SCREENADDR, x
 }
 .macro	PrintAXY() {
 	sta	char
-	lda	RowsLo, y
-	sta	pos
-	lda	RowsHi, y
-	sta	pos+1
+	mov	RowsLo, y : pos
+	mov	RowsHi, y : pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
 }
@@ -956,6 +915,86 @@ RowsHi:
 Wait:	jsr	GETIN
 	cmp	#0
 	beq	Wait
+}
+
+.pseudocommand mov src:tar {
+	lda	src
+	sta	tar
+}
+
+.function _16bitnextArgument(arg) {
+	.if (arg.getType() == AT_IMMEDIATE) 
+		.return CmdArgument(arg.getType(), >arg.getValue())
+	.return CmdArgument(arg.getType(), arg.getValue()+1)
+}
+
+.pseudocommand mov16 src:tar {
+	lda	src
+	sta	tar
+	lda	_16bitnextArgument(src)
+	sta	_16bitnextArgument(tar)
+}
+
+.pseudocommand mov24 src:tar {
+	.if (src.getType() == AT_IMMEDIATE) {
+		lda	src
+		sta	tar
+		lda #0
+		sta tar.getValue()+1
+		sta tar.getValue()+2
+	} else {
+		.error("Not implemented!")
+	}
+}
+
+.pseudocommand add arg1 : arg2 : tar {
+	.if (tar.getType() == AT_NONE) .eval tar=arg1
+	lda arg2
+	clc
+	adc arg1
+	sta	tar
+}
+
+.pseudocommand add16 arg1 : arg2 : tar {
+	.if (tar.getType() == AT_NONE) .eval tar=arg1
+	clc
+	lda	arg1
+	adc	arg2
+	sta	tar
+	.if (arg2.getType() == AT_IMMEDIATE && (>arg2.getValue()) == 0) {
+		bcc skip
+		inc tar.getValue()+1
+	skip:
+	} else {
+	lda	_16bitnextArgument(arg1)
+	adc	_16bitnextArgument(arg2)
+	sta	_16bitnextArgument(tar)
+	}
+}
+
+.pseudocommand sub arg1 : arg2 : tar {
+	.if (tar.getType() == AT_NONE) .eval tar=arg1
+	lda arg2
+	sec
+	sbc arg1
+	sta	tar
+}
+
+.pseudocommand sub16 arg1 : arg2 : tar {
+	.if (tar.getType() == AT_NONE) .eval tar=arg1
+	sec
+	lda	arg1
+	sbc	arg2
+	sta	tar
+	.if (arg2.getType() == AT_IMMEDIATE && (>arg2.getValue()) == 0) {
+		bcs skip
+		dec tar.getValue()+1
+	skip:
+	} else {
+	lda	_16bitnextArgument(arg1)
+	sbc	_16bitnextArgument(arg2)
+	sta	_16bitnextArgument(tar)
+	}
 }
 
 .pseudocommand inc16 arg {
