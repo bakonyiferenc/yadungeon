@@ -1,3 +1,5 @@
+#define C64
+
 #importif	C64	"c64.inc"
 #importif	C128	"c128.inc"
 #importif	X16	"x16.inc"
@@ -533,18 +535,71 @@ _tile:	RenderTile()
 
 //----------------------------------------------------------
 //
+//	Spawn a new monster
+//	Input: X, Y: dungeon coordinates (0-255)
+//	Returns a char representing the monster in A
+//	Keeps: X, Y
+//
+//----------------------------------------------------------
+
+.macro SpawnMonster() {
+	jsr	_SpawnMonster
+}
+
+_SpawnMonster: {
+.const X = ZP_FREE0
+.const Y = ZP_FREE1
+	stx	X
+	sty	Y
+
+	ldx	MonsterCnt
+	inc	MonsterCnt
+	ldy	MonsterPtr
+	inc	MonsterPtr
+	mov	X : MonsterX, y
+	mov	Y : MonsterY, y
+	mov	PlayerZ : MonsterZ, y
+	tya
+	sta	MonsterCache, x	
+	rnd			// Monster type
+	sta	Monster, y
+
+	ldx	X
+	ldy	Y
+	rts
+}
+
+
+//----------------------------------------------------------
+//
 //	Render a tile
 //	Input: X, Y: dungeon coordinates (0-255)
 //	Returns a char in A
+//	Keeps: X, Y
 //
 //----------------------------------------------------------
 
 .macro	RenderTile() {
 	jsr	_RenderTile
+
+	cmp	#'.'
+	bne	End
+	sta	ZP_FREE3
+	rnd
+	bne	NotSpawn	// Chance of a monster spawn = 1 : 256
+	lda	MonsterCnt
+	cmp	#20		// Max nr of monsters per dungeon
+	bcs	NotSpawn
+	SpawnMonster()
+	jmp	End
+NotSpawn:
+	lda	ZP_FREE3
+End:
 }
 
 _RenderTile:
 	RenderBorder()
+	RenderMonster()
 
 	cpx	#40		// Test tunnels
 	bne	!+
@@ -577,6 +632,39 @@ Border:	lda	#'%'		// Fence
 	rts
 End:
 }
+
+// Find an existing monster here
+.macro RenderMonster() {
+.const	X = 	ZP_FREE0
+.const	Y = 	ZP_FREE1
+
+	stx	X
+	sty	Y
+
+	ldx	MonsterCnt
+	beq	NotFound
+Loop:	dex
+	lda	MonsterCache, x
+	tay
+	lda	MonsterX, y
+	cmp	X
+	bne	Next
+	lda	MonsterY, y
+	cmp	Y
+	bne	Next
+
+Found:	lda	Monster, y
+	ldx	X
+	ldy	Y
+	rts
+
+Next:	cpx	#0
+	bne	Loop
+NotFound:
+	ldx	X
+	ldy	Y
+}
+
 
 // A simple parametric room
 .macro	RenderRoom(xsize, ysize, chance) {
@@ -773,6 +861,10 @@ CommandTable:
 // Prints a char at a given dungeon position
 // X, Y: dungeon relative coordinates, A: character to print
 .macro	PrintDungeonTile() {
+	jsr	_PrintDungeonTile
+}
+
+_PrintDungeonTile: {
 	sta	char
 	txa
 	sec
@@ -786,13 +878,15 @@ CommandTable:
 	mov	SceneHi, y : pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
+	rts
 }
 
 // Replaces Player with underlying tile on screen
 .macro	HidePlayer() {
-	ldx	PlayerX
-	ldy	PlayerY
-	RenderTile()
+	//ldx	PlayerX
+	//ldy	PlayerY
+	//RenderTile()
+	lda	#'.'
 	ldx	PlayerX
 	ldy	PlayerY
 	PrintDungeonTile()
@@ -819,9 +913,6 @@ SceneHi:
 
 .macro	EnterDungeon() {
 	jsr	_EnterDungeon
-	ClearScene()
-	DrawVisibleScene()
-	PrintPlayer()
 }
 
 _EnterDungeon: {
@@ -841,7 +932,7 @@ _EnterDungeon: {
 	lda	#$fe
 	sta	DungeonMaxX
 	sta	DungeonMaxY
-	jmp	Done
+	jmp	Monsters
 Regular:			// Calculate regular dungeon size
 	HashA()
 	tay
@@ -859,7 +950,24 @@ Regular:			// Calculate regular dungeon size
 	dex
 	stx	DungeonMaxY
 
-Done:	lda	DungeonW	// For AdjustOffset()
+Monsters:			// Populate MonsterCache
+	ldx	#0
+	ldy	#0
+	lda	PlayerZ
+Loop:
+	cmp	MonsterZ, x
+	bne	NotHere
+	lda	Monster, x
+	txa
+	sta	MonsterCache, y
+	lda	PlayerZ
+	iny
+NotHere:
+	inx
+	bne	Loop
+	sty	MonsterCnt
+
+	lda	DungeonW	// For AdjustOffset()
 	sec
 	sbc	#SCENEW
 	sta	ox1
@@ -871,6 +979,10 @@ Done:	lda	DungeonW	// For AdjustOffset()
 	sta	oy1
 	sta	oy2
 	sta	oy3
+	
+	ClearScene()
+	DrawVisibleScene()
+	PrintPlayer()
 	rts
 }
 
@@ -1117,7 +1229,7 @@ noEor:	sta	Hash, x
 Monster:	.fill 256, 0
 MonsterX:	.fill 256, 0
 MonsterY:	.fill 256, 0
-MonsterZ:	.fill 256, 0	// Current dungeon: 0 = wilderness, 1-7 = cities, 8-255 = dungeons
+MonsterZ:	.fill 256, 255	// Current dungeon: 0 = wilderness, 1-7 = cities, 8-255 = dungeons
 MonsterHP:	.fill 256, 0
 MonsterState1:	.fill 256, 0	// aggroed, sleeping, confused, stunned, feared, afraid, blind, deaf
 MonsterState2:	.fill 256, 0	// poisoned, bleeding, fast/slow/paralyzed, drugged, invulnerable
@@ -1126,6 +1238,8 @@ Rnd1:		.fill 256, 0
 Rnd2:		.fill 256, 0
 Hash:		.fill 256, 0
 Seed:		.word	0
+
+MonsterPtr:	.byte	0	// Points to next free monster slot
 
 PlayerX:	.byte	0
 PlayerY:	.byte	0
@@ -1148,3 +1262,7 @@ DungeonW:	.byte	0	// Size of current dungeon
 DungeonH:	.byte	0
 DungeonMaxX:	.byte	0
 DungeonMaxY:	.byte	0
+MonsterCnt:	.byte	0	// Nr of monsters at current dungeon
+.align 256
+
+MonsterCache:	.fill 256, 0	// Pointers to monsters at current dungeon

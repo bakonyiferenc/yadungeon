@@ -3,9 +3,14 @@
 
 //----------------------------------------------------------
 //
-//	HW specific
+//	Machine specific
 //
 //----------------------------------------------------------
+
+.const ZP_FREE0         =       $FB
+.const ZP_FREE1         =       $FC
+.const ZP_FREE2         =       $FD
+.const ZP_FREE3         =       $FE
 
 .const	SCREENADDR	=	$0400
 .const	SCREENW		=	40
