@@ -49,14 +49,14 @@ MainLoop:			// <- self modifying
 	InitHash()
 
 	ldx	#0
-	txa
-Loop:	sta	Monster, x
+Loop:	lda	#0
+	sta	Monster, x
 	sta	MonsterX, x
 	sta	MonsterY, x
-	sta	MonsterZ, x
 	sta	MonsterHP, x
 	sta	MonsterState1, x
 	sta	MonsterState2, x
+	mov	#$ff : MonsterZ, x	// Hoping all Monsters will (re)spawn till Player reaches dungeon level 255
 	inx
 	bne	Loop
 
@@ -559,6 +559,9 @@ _SpawnMonster: {
 	mov	X : MonsterX, y
 	mov	Y : MonsterY, y
 	mov	PlayerZ : MonsterZ, y
+	mov	#255 : MonsterHP, y	// Max HP
+	mov	#0 : MonsterState1, y
+	sta	MonsterState2, y
 	tya
 	sta	MonsterCache, x	
 	rnd			// Monster type
