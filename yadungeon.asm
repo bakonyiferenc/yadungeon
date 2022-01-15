@@ -5,6 +5,7 @@
 #importif	X16	"x16.inc"
 
 BasicUpstart2(Start)
+.encoding "petscii_mixed"	// Default encoding
 
 //----------------------------------------------------------
 //
@@ -76,6 +77,9 @@ Loop:	lda	#0
 
 .macro	PlayersTurn() {
 Loop:	GetKey()
+	sta	ZP_FREE3
+	PrintMessage(" ")	// To clear the message line
+	lda	ZP_FREE3
 	jsr	ProcessCommand
 	bcc	Loop		// Loop until a turn has passed
 }
@@ -90,7 +94,7 @@ Loop:	GetKey()
 	rnd
 	and	#7
 	bne	End
-	Print(@"\$13Monsters hit you! ")
+	PrintMessage("Monsters hit you!")
 	dec	PlayerHP
 End:
 }
@@ -104,7 +108,7 @@ End:
 .macro	IsPlayerAlive() {
 	lda	PlayerHP
 	bne	Alive
-Dead:	Print(@"\$13You died! ")
+Dead:	PrintMessage("You died!")
 	QuitGame()
 Alive:
 }
@@ -775,48 +779,48 @@ End:	rts
 IllegalCommand:
 	txa
 	jsr	CHROUT
-	Print(@"\$13Illegal command received")
+	PrintMessage("Illegal command received")
 	clc
 	rts
 
 CommandFoo:
 	txa
 	jsr	CHROUT
-	Print(@"\$13Valid but unimplemented command received\n")
+	PrintMessage("Valid but unimplemented command received")
 	sec
 	rts
 
 CommandSelf:	
-	Print(@"\$13'@' command received, printing character info\n")
+	PrintMessage("Printing character info")
 	clc
 	rts
 
 Command_a:	
-	Print(@"\$13'a' command received, aim wand\n")
+	PrintMessage("Aim wand")
 	sec
 	rts
 
 Command_l:
-	Print(@"\$13Look around\n")
+	PrintMessage("Look around")
 	DrawScene()
 	PrintPlayer()
 	clc
 	rts
 
 Command_q:	
-	Print(@"\$13'q' command received, quitting\n")
+	PrintMessage("Quitting")
 	QuitGame()
 	sec
 	rts
 
 Command_r:	
-	Print(@"\$13Resting to full HP\n")
+	PrintMessage("Resting to full HP")
 	mov	#250 : PlayerHP
 	sec
 	rts
 
 Command_z:	
-	Print(@"\$13'z' command received, zap rod\n")
+	PrintMessage("Zap rod")
 	sec
 	rts
 
@@ -850,6 +854,33 @@ CommandTable:
 //	Game specific macros
 //
 //----------------------------------------------------------
+
+// Prints a constant string to the message bar --more--
+.macro	PrintMessage(string) {
+	mov16	#Text : Message
+	mov	#End - Text : MessageSize
+	
+	jsr	_PrintMessage
+	jmp	End
+Text:	.encoding "screencode_mixed"
+	.text	string
+	.encoding "petscii_mixed"
+	
+End:	
+}
+
+_PrintMessage:
+	ldx	#0
+!:	lda	Message:$beef, x
+	sta	SCREENADDR, x
+	inx
+	cpx	MessageSize:#0
+	bne	!-
+!:	mov	#' ' : SCREENADDR, x
+	inx
+	cpx	#SCREENW
+	bcc	!-
+	rts
 
 // Prints a char at given scene coordinates
 // X, Y: scene relative coordinates, A: character to print
@@ -1003,8 +1034,7 @@ Loop:	lda	Output,y
         jsr     CHROUT
 	iny
 	jmp	Loop
-Output:	.encoding "petscii_mixed"
-	.text	string
+Output:	.text	string
 	.byte	0
 End:	
 }
