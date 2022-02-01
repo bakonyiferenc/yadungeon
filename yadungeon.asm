@@ -78,7 +78,7 @@ Loop:	lda	#0
 .macro	PlayersTurn() {
 Loop:	GetKey()
 	sta	ZP_FREE3
-	PrintMessage(" ")	// To clear the message line
+	ClearMessage()
 	lda	ZP_FREE3
 	jsr	ProcessCommand
 	bcc	Loop		// Loop until a turn has passed
@@ -855,7 +855,7 @@ CommandTable:
 //
 //----------------------------------------------------------
 
-// Prints a constant string to the message bar --more--
+// Prints a constant string to the message bar with -more- if needed
 .macro	PrintMessage(string) {
 	mov16	#Text : Message
 	mov	#End - Text : MessageSize
@@ -869,18 +869,36 @@ Text:	.encoding "screencode_mixed"
 End:	
 }
 
+.const	_more_ = "-more-"
+_more:	
+	.encoding "screencode_mixed"
+	.text	_more_
+	.encoding "petscii_mixed"
+
 _PrintMessage:
-	ldx	#0
+	lda	MessageCursor
+	clc
+	adc	MessageSize
+	cmp	#SCREENW - _more_.size()
+	bcc	!+
+	Copy(_more, SCREENADDR + SCREENW - _more_.size(), _more_.size())
+	GetKey()
+	ClearMessage()
+!:	ldx	#0
 !:	lda	Message:$beef, x
-	sta	SCREENADDR, x
+	sta	MessageCursor:SCREENADDR
+	inc	MessageCursor
 	inx
 	cpx	MessageSize:#0
 	bne	!-
-!:	mov	#' ' : SCREENADDR, x
-	inx
-	cpx	#SCREENW
-	bcc	!-
+	inc	MessageCursor
+	lda	MessageCursor
 	rts
+
+.macro	ClearMessage() {
+	Fill(SCREENADDR, ' ', SCREENW)
+	mov	#0 : MessageCursor
+}
 
 // Prints a char at given scene coordinates
 // X, Y: scene relative coordinates, A: character to print
@@ -1090,6 +1108,25 @@ RowsHi:
 Wait:	jsr	GETIN
 	cmp	#0
 	beq	Wait
+}
+
+// Fill "len" bytes of memory starting from "addr" with "byte". If "len" is 0 then fill 256 bytes.
+.macro	Fill(addr, byte, len) {
+	ldx	#len - 1
+	lda	#byte
+Loop:	sta	addr, x
+	dex
+	bne	Loop
+	sta	addr
+}
+
+// Copy "len" bytes of memory starting from "src" to "dst". If "len" is 0 then copy 256 bytes.
+.macro	Copy(src, dst, len) {
+	ldx	#len - 1
+Loop:	mov	src, x : dst, x
+	dex
+	bne	Loop
+	mov	src, x : dst, x
 }
 
 .pseudocommand mov src:tar {
