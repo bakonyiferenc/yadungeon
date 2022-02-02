@@ -717,16 +717,16 @@ End:
 ProcessCommand:
 	cmp	#$11	// cursor down
 	bne	!+
-	MovePlayerBy(0, -1)
+	jmp	CommandDown
 !:	cmp	#$91	// cursor up
 	bne	!+
-	MovePlayerBy(0, 1)
+	jmp	CommandUp
 !:	cmp	#$1d	// cursor right
 	bne	!+
-	MovePlayerBy(1, 0)
+	jmp	CommandRight
 !:	cmp	#$9d	// cursor left
 	bne	!+
-	MovePlayerBy(-1, 0)
+	jmp	CommandLeft
 !:	cmp	#'<'
 	bne	!+
 	jmp	Command_upstairs
@@ -745,7 +745,7 @@ ProcessCommand:
 	asl
 	sta	Lookup
 	jmp	Lookup:(CommandTable)
-	
+
 //----------------------------------------------------------
 //
 //	Player commands
@@ -760,8 +760,13 @@ ProcessCommand:
 .if (y == -1)	dey
 .if (y ==  1)	iny
 	RenderTile()
+	cmp	#'#'
+	beq	Wall
+	cmp	#'%'
+	beq	Wall
 	cmp	#'.'
-	bne	End
+	bne	Something
+
 //.if (x != 0)	stx	PlayerX
 //.if (y != 0)	sty	PlayerY
 	HidePlayer()
@@ -773,7 +778,13 @@ ProcessCommand:
 	DrawVisibleScene()
 	PrintPlayer()
 	sec
-End:	rts
+	rts
+
+Wall:	PrintMessage("There is a wall in the way!")
+	rts
+Something:
+	PrintMessage("You hit something!")
+	rts
 }
 
 IllegalCommand:
@@ -782,6 +793,15 @@ IllegalCommand:
 	PrintMessage("Illegal command received")
 	clc
 	rts
+
+CommandDown:
+	MovePlayerBy(0, -1)
+CommandUp:
+	MovePlayerBy(0, 1)
+CommandRight:
+	MovePlayerBy(1, 0)
+CommandLeft:
+	MovePlayerBy(-1, 0)
 
 CommandFoo:
 	txa
