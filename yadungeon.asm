@@ -570,6 +570,8 @@ _SpawnMonster: {
 	sta	MonsterCache, x	
 	rnd			// Monster type
 	sta	Monster, y
+	sta	LastMonster
+	sty	LastMonsterIdx
 
 	ldx	X
 	ldy	Y
@@ -661,6 +663,8 @@ Loop:	dex
 	bne	Next
 
 Found:	lda	Monster, y
+	sta	LastMonster
+	sty	LastMonsterIdx
 	ldx	X
 	ldy	Y
 	rts
@@ -760,32 +764,37 @@ ProcessCommand:
 .if (y == -1)	dey
 .if (y ==  1)	iny
 	RenderTile()
+	cmp	#'.'
+	beq	Floor
 	cmp	#'#'
 	beq	Wall
 	cmp	#'%'
 	beq	Wall
-	cmp	#'.'
-	bne	Something
-
-//.if (x != 0)	stx	PlayerX
-//.if (y != 0)	sty	PlayerY
-	HidePlayer()
+	jmp	_Something
+Wall:	jmp	_Wall
+Floor:	HidePlayer()
 .if (x == -1)	dec	PlayerX
 .if (x ==  1)	inc	PlayerX
 .if (y == -1)	dec	PlayerY
 .if (y ==  1)	inc	PlayerY
+	jmp	_MovePlayerBy
+}
+
+_MovePlayerBy:
 	AdjustOffset()
 	DrawVisibleScene()
 	PrintPlayer()
 	sec
 	rts
 
-Wall:	PrintMessage("There is a wall in the way!")
+_Wall:	PrintMessage("There is a wall in the way!")
+	clc
 	rts
-Something:
+
+_Something:
 	PrintMessage("You hit something!")
+	sec
 	rts
-}
 
 IllegalCommand:
 	txa
@@ -1353,6 +1362,9 @@ DungeonH:	.byte	0
 DungeonMaxX:	.byte	0
 DungeonMaxY:	.byte	0
 MonsterCnt:	.byte	0	// Nr of monsters at current dungeon
+LastMonster:	.byte 	0	// Most recent monster
+LastMonsterIdx:	.byte 	0	// Index of most recent monster
+
 .align 256
 
 MonsterCache:	.fill 256, 0	// Pointers to monsters at current dungeon
