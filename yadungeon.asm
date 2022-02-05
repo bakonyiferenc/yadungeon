@@ -578,6 +578,25 @@ _SpawnMonster: {
 	rts
 }
 
+//----------------------------------------------------------
+//
+//	Kill a monster
+//	Input: X: monster idx
+//
+//----------------------------------------------------------
+
+.macro KillMonster() {
+	mov	#0 : MonsterHP, x	// 0 HP == dead
+	mov	#0 : MonsterState1, x
+	sta	MonsterState2, x
+	lda	MonsterY, x
+	tay
+	lda	MonsterX, x
+	tax
+	RenderTile()
+	PrintDungeonTile()
+	PrintMessage("It dies.")
+}
 
 //----------------------------------------------------------
 //
@@ -662,7 +681,10 @@ Loop:	dex
 	cmp	Y
 	bne	Next
 
-Found:	lda	Monster, y
+Found:	lda	MonsterHP, y
+	beq	Next		// monster is dead
+
+Alive:	lda	Monster, y
 	sta	LastMonster
 	sty	LastMonsterIdx
 	ldx	X
@@ -756,6 +778,13 @@ ProcessCommand:
 //
 //----------------------------------------------------------
 
+IllegalCommand:
+	txa
+	jsr	CHROUT
+	PrintMessage("Illegal command received")
+	clc
+	rts
+
 .macro	MovePlayerBy(x, y) {
 	ldx	PlayerX
 	ldy	PlayerY
@@ -793,14 +822,9 @@ _Wall:	PrintMessage("There is a wall in the way!")
 
 _Something:
 	PrintMessage("You hit something!")
+	ldx	LastMonsterIdx
+	KillMonster()
 	sec
-	rts
-
-IllegalCommand:
-	txa
-	jsr	CHROUT
-	PrintMessage("Illegal command received")
-	clc
 	rts
 
 CommandDown:
