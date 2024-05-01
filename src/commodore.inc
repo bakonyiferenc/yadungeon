@@ -12,7 +12,7 @@ GETIN	=	$ffe4
 
 ;----------------------------------------------------------
 ;
-;	General macros & pseudocommands
+;	General macros
 ;
 ;----------------------------------------------------------
 
@@ -73,104 +73,98 @@ Loop:	sta	addr, x
 ; Copy "len" bytes of memory starting from "src" to "dst". If "len" is 0 then copy 256 bytes.
 .macro	Copy	src, dst, len
 	ldx	#len - 1
-Loop:	mov	src, x : dst, x
+Loop:	mov	{src, x}, {dst, x}
 	dex
 	bne	Loop
-	mov	src, x : dst, x
+	mov	{src, x}, {dst, x}
 .endmacro
 
-.pseudocommand mov src:tar {
-	lda	src
-	sta	tar
-}
+.macro  mov src, dest
+    lda src
+    sta dest
+.endmacro
 
-.function _16bitnextArgument(arg) {
-	.if (arg.getType == AT_IMMEDIATE) 
-		.return CmdArgument(arg.getType, >arg.getValue)
-	.return CmdArgument(arg.getType, arg.getValue+1)
-}
+.macro  mov16    src, dest
+    .local sepd, seps
+    sepd .set 0
+    seps .set 0
 
-.pseudocommand mov16 src:tar {
-	lda	src
-	sta	tar
-	lda	_16bitnextArgument(src)
-	sta	_16bitnextArgument(tar)
-}
+    .if .match({.right(2,{dest})},{,x}) .or .match({.right(2,{dest})},{,y})
+        sepd .set 2
+    .endif
+    .if .match({.right(2,{src})},{,x}) .or .match({.right(2,{src})},{,y})
+        seps .set 2
+    .endif
 
-.pseudocommand mov24 src:tar {
-	.if (src.getType == AT_IMMEDIATE) {
-		lda	src
-		sta	tar
-		lda #0
-		sta tar.getValue+1
-		sta tar.getValue+2
-	} else {
-		.error("Not implemented!")
-	}
-}
+    .if .match(.left(1, {src}),#)
+        mov #.lobyte(.right(.tcount({src})-1,{src})), {.left(.tcount({dest})-sepd,dest)+0 .right(sepd,dest)}
+        mov #.hibyte(.right(.tcount({src})-1,{src})), {.left(.tcount({dest})-sepd,dest)+1 .right(sepd,dest)}
+    .else
+        mov {.left(.tcount({src})-seps,src)+0 .right(seps,src)}, {.left(.tcount({dest})-sepd,dest)+0 .right(sepd,dest)}
+        mov {.left(.tcount({src})-seps,src)+1 .right(seps,src)}, {.left(.tcount({dest})-sepd,dest)+1 .right(sepd,dest)}
+    .endif
+.endmacro
 
-.pseudocommand add arg1 : arg2 : tar {
-	.if (tar.getType == AT_NONE) .eval tar=arg1
+.macro  mov24   src, dest
+    .local sepd, seps
+    sepd .set 0
+    seps .set 0
+
+    .if .match({.right(2,{dest})},{,x}) .or .match({.right(2,{dest})},{,y})
+        sepd .set 2
+    .endif
+    .if .match({.right(2,{src})},{,x}) .or .match({.right(2,{src})},{,y})
+        seps .set 2
+    .endif
+
+    .if .match(.left(1, {src}),#)
+        mov #.lobyte(.right(.tcount({src})-1,{src})), {.left(.tcount({dest})-sepd,dest)+0 .right(sepd,dest)}
+        mov #.hibyte(.right(.tcount({src})-1,{src})), {.left(.tcount({dest})-sepd,dest)+1 .right(sepd,dest)}
+        mov #.bankbyte(.right(.tcount({src})-1,{src})), {.left(.tcount({dest})-sepd,dest)+2 .right(sepd,dest)}
+    .else
+        mov {.left(.tcount({src})-seps,src)+0 .right(seps,src)}, {.left(.tcount({dest})-sepd,dest)+0 .right(sepd,dest)}
+        mov {.left(.tcount({src})-seps,src)+1 .right(seps,src)}, {.left(.tcount({dest})-sepd,dest)+1 .right(sepd,dest)}
+        mov {.left(.tcount({src})-seps,src)+2 .right(seps,src)}, {.left(.tcount({dest})-sepd,dest)+2 .right(sepd,dest)}
+    .endif
+.endmacro
+
+.macro  add     arg1, arg2, dest
 	lda arg2
 	clc
 	adc arg1
-	sta	tar
-}
+	sta	dest
+.endmacro
 
-.pseudocommand add16 arg1 : arg2 : tar {
-	.if (tar.getType == AT_NONE) .eval tar=arg1
+.macro  add16   immediate, dest
 	clc
-	lda	arg1
-	adc	arg2
-	sta	tar
-	.if (arg2.getType == AT_IMMEDIATE && (>arg2.getValue) == 0) {
-		bcc skip
-		inc tar.getValue+1
-	skip:
-	} else {
-	lda	_16bitnextArgument(arg1)
-	adc	_16bitnextArgument(arg2)
-	sta	_16bitnextArgument(tar)
-	}
-}
+	lda	dest
+	adc	immediate
+	sta	dest
+	bcc skip
+	inc dest+1
+skip:
+.endmacro
 
-.pseudocommand sub arg1 : arg2 : tar {
-	.if (tar.getType == AT_NONE) .eval tar=arg1
+.macro  sub     arg1, arg2, dest
 	lda arg2
 	sec
 	sbc arg1
 	sta	tar
-}
+.endmacro
 
-.pseudocommand sub16 arg1 : arg2 : tar {
-	.if (tar.getType == AT_NONE) .eval tar=arg1
-	sec
-	lda	arg1
-	sbc	arg2
-	sta	tar
-	.if (arg2.getType == AT_IMMEDIATE && (>arg2.getValue) == 0) {
-		bcs skip
-		dec tar.getValue+1
-	skip:
-	} else {
-	lda	_16bitnextArgument(arg1)
-	sbc	_16bitnextArgument(arg2)
-	sta	_16bitnextArgument(tar)
-	}
-}
-
-.pseudocommand inc16 arg {
+.macro  inc16   arg
 	inc	arg
 	bne	over
-	inc	arg.getValue + 1
+	inc	arg+1
 over:
-}
+.endmacro
 
-.pseudocommand inc24 arg {
+
+.macro  inc24   arg
 	inc16	arg
 	bne	over
-	inc	arg.getValue + 2
+	inc	arg+2
 over:
-}
+.endmacro
 
 .endif  ; _COMMODORE_INC_

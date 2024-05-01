@@ -66,14 +66,14 @@ Loop:	lda	#0
 	sta	MonsterHP, x
 	sta	MonsterState1, x
 	sta	MonsterState2, x
-	mov	#$ff : MonsterZ, x	; Hoping all Monsters will (re)spawn till Player reaches dungeon level 255
+	mov	#$ff, {MonsterZ, x}	; Hoping all Monsters will (re)spawn till Player reaches dungeon level 255
 	inx
 	bne	Loop
 
-	mov24	#1 : Turn	; Reset turn counter
+	mov24	#1, Turn	; Reset turn counter
 
-	mov	#100 : PlayerHP	; Dummy character creation
-	mov	#1 : PlayerZ	; Start from City1
+	mov	#100, PlayerHP	; Dummy character creation
+	mov	#1, PlayerZ	; Start from City1
 	
 	jmp	EnterDungeon
 .endproc
@@ -130,7 +130,7 @@ Alive:	rts
 ;----------------------------------------------------------
 
 .proc	QuitGame
-	mov	#RTS : MainLoop
+	mov	#RTS, MainLoop
 	rts
 .endproc
 
@@ -256,16 +256,16 @@ Details:
 ;----------------------------------------------------------
 
 .proc	OffsetUpdated
-	sub OffsetX : #<(SCREENADDR + SCENEOFFSET) : _screenLo
+	sub	OffsetX, #<(SCREENADDR + SCENEOFFSET), _screenLo
 	lda	#>(SCREENADDR + SCENEOFFSET)
 	sbc	#0
 	sta	_screenHi
 
-	add	OffsetX : #SCENEW : _x
-	add	OffsetY : #SCENEH : _y
+	add	OffsetX, #SCENEW, _x
+	add	OffsetY, #SCENEH, _y
 
-	mov	OffsetX : _ox
-	mov	OffsetY : _oy
+	mov	OffsetX, _ox
+	mov	OffsetY, _oy
 	rts
 .endproc
 
@@ -347,7 +347,7 @@ AdjDown:
 MoveColumn:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) {
 	.var POS = SCREENADDR + SCENEOFFSET + i * SCREENW
-	mov	POS,x : POS,y
+	mov	{POS,x}, {POS,y}
 }
 	dey
 	dex
@@ -377,7 +377,7 @@ End:	jmp	Scrolled
 MoveColumn:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) {
 	.var POS = SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256
-	mov	POS,x : POS,y
+	mov	{POS,x}, {POS,y}
 }
 	iny
 	inx
@@ -398,7 +398,7 @@ End:	jmp	Scrolled
 .for(var i = SCENEH - 1 ; i >= n ; i--) {
 	.var POS1 = SCREENADDR + SCENEOFFSET + (i - n) * SCREENW - 1
 	.var POS2 = SCREENADDR + SCENEOFFSET +  i      * SCREENW - 1
-	mov	POS1,x : POS2,x
+	mov	{POS1,x}, {POS2,x}
 }
 	lda	#' '
 .for(var i = n - 1 ; i >= 0 ; i--) {
@@ -411,7 +411,7 @@ End:	jmp	Scrolled
 .for(var i = 0 ; i < SCENEH - n ; i++) {
 	.var POS1 = SCREENADDR + SCENEOFFSET + (i + n) * SCREENW - 1
 	.var POS2 = SCREENADDR + SCENEOFFSET +  i      * SCREENW - 1
-	mov	POS1,x : POS2,x
+	mov	{POS1,x}, {POS2,x}
 }
 	lda	#' '
 .for(var i = SCENEH - n ; i < SCENEH ; i++) {
@@ -506,8 +506,8 @@ Scrolled:
 ;----------------------------------------------------------
 
 .proc	DrawScene
-	mov	#JSR_ABS : _tile
-	mov16 #_RenderTile : _tile+1
+	mov	#JSR_ABS, _tile
+	mov16	#_RenderTile, _tile+1
 	jmp	_DrawScene
 .endproc
 
@@ -518,9 +518,9 @@ Scrolled:
 ;----------------------------------------------------------
 
 .proc	ClearScene
-	mov	#NOP : _tile
-	mov	#LDA_IMM : _tile+1
-	mov	#' ' : 	_tile+2
+	mov	#NOP, _tile
+	mov	#LDA_IMM, _tile+1
+	mov	#' ', _tile+2
 	; fall through _DrawScene
 .endproc
 
@@ -538,7 +538,7 @@ _tile:	jsr	RenderTile
 	sta	screen:SCREENADDR, x
 	cpx	_ox:#0
 	bne	x
-	add16 screen : #SCREENW
+	add16	#SCREENW, screen
 	cpy	_oy:#0
 	bne	y
 	rts
@@ -563,11 +563,11 @@ Y = ZP_FREE1
 	inc	MonsterCnt
 	ldy	MonsterPtr
 	inc	MonsterPtr
-	mov	X : MonsterX, y
-	mov	Y : MonsterY, y
-	mov	PlayerZ : MonsterZ, y
-	mov	#255 : MonsterHP, y	; Max HP
-	mov	#0 : MonsterState1, y
+	mov	X, {MonsterX, y}
+	mov	Y, {MonsterY, y}
+	mov	PlayerZ, {MonsterZ, y}
+	mov	#255, {MonsterHP, y}	; Max HP
+	mov	#0, {MonsterState1, y}
 	sta	MonsterState2, y
 	tya
 	sta	MonsterCache, x	
@@ -589,8 +589,8 @@ Y = ZP_FREE1
 ;----------------------------------------------------------
 
 .proc KillMonster
-	mov	#0 : MonsterHP, x	; 0 HP == dead
-	mov	#0 : MonsterState1, x
+	mov	#0, {MonsterHP, x}	; 0 HP == dead
+	mov	#0, {MonsterState1, x}
 	sta	MonsterState2, x
 	lda	MonsterY, x
 	tay
@@ -872,7 +872,7 @@ Command_q:
 
 Command_r:	
 	PrintMessage	"Resting to full HP"
-	mov	#250 : PlayerHP
+	mov	#250, PlayerHP
 	sec
 	rts
 
@@ -914,8 +914,8 @@ CommandTable:
 
 ; Prints a constant string to the message bar with -more- if needed
 .macro	PrintMessage	string
-	mov16	#Text : Message
-	mov	#End - Text : MessageSize
+	mov16	#Text, Message
+	mov	#End - Text, MessageSize
 	
 	jsr	_PrintMessage
 	jmp	End
@@ -949,7 +949,7 @@ _more:	.byte "-more-"
 
 .proc	ClearMessage
 	Fill	SCREENADDR, ' ', SCREENW
-	mov	#0 : MessageCursor
+	mov	#0, MessageCursor
 	rts
 .endproc
 
@@ -957,8 +957,8 @@ _more:	.byte "-more-"
 ; X, Y: scene relative coordinates, A: character to print
 .proc	PrintSceneTile
 	sta	char
-	mov	SceneLo, y : pos
-	mov	SceneHi, y : pos+1
+	mov	{SceneLo, y}, pos
+	mov	{SceneHi, y}, pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
 	rts
@@ -976,8 +976,8 @@ _more:	.byte "-more-"
 	sec
 	sbc	OffsetY
 	tay
-	mov	SceneLo, y : pos
-	mov	SceneHi, y : pos+1
+	mov	{SceneLo, y}, pos
+	mov	{SceneHi, y}, pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
 	rts
