@@ -1,5 +1,7 @@
-#importonce
-#import "commodore.inc"
+.ifndef _C128_INC_
+_C128_INC_ = 1
+
+.include "commodore.inc"
 
 .macro BasicUpstart2(address) {
     .pc = $1c01 "C128 Basic"
@@ -15,3 +17,5 @@ upstartEnd:
 
 .const	SCREENW	=	80
 .const	SCREENH	=	25
+
+.endif  ; _C128_INC_

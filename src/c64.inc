@@ -1,5 +1,7 @@
-#importonce
-#import "commodore.inc"
+.ifndef _C64_INC_
+_C64_INC_ = 1
+
+.include "commodore.inc"
 
 ;----------------------------------------------------------
 ;
@@ -25,3 +27,5 @@
 .const	SCENEOFFSET	=	SCREENW + 11
 .const	SCENEW		=	29	; Size of displayed scene
 .const	SCENEH		=	24
+
+.endif  ; _C64_INC_
