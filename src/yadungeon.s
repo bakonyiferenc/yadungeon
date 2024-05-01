@@ -557,8 +557,8 @@ _tile:	RenderTile()
 }
 
 _SpawnMonster: {
-.const X = ZP_FREE0
-.const Y = ZP_FREE1
+X = ZP_FREE0
+Y = ZP_FREE1
 	stx	X
 	sty	Y
 
@@ -669,8 +669,8 @@ End:
 
 ; Find an existing monster here
 .macro RenderMonster() {
-.const	X = 	ZP_FREE0
-.const	Y = 	ZP_FREE1
+X = 	ZP_FREE0
+Y = 	ZP_FREE1
 
 	stx	X
 	sty	Y
@@ -928,7 +928,7 @@ Text:	.encoding "screencode_mixed"
 End:	
 }
 
-.const	_more_ = "-more-"
+_more_ = "-more-"
 _more:	
 	.encoding "screencode_mixed"
 	.text	_more_

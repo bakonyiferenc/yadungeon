@@ -15,7 +15,7 @@ upstartEnd:
     .pc = $1c0e "Basic End"
 }
 
-.const	SCREENW	=	80
-.const	SCREENH	=	25
+SCREENW	=	80
+SCREENH	=	25
 
 .endif  ; _C128_INC_
