@@ -1093,12 +1093,6 @@ NotHere:
 ;
 ;----------------------------------------------------------
 
-.macro rnd
-	lda	$d012
-	eor	$dc04
-	sbc	$dc05
-.endmacro
-
 .proc	InitRnd
 	rnd
 	sta	Seed

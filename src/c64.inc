@@ -18,6 +18,12 @@ SCREENADDR	=	$0400
 SCREENW		=	40
 SCREENH		=	25
 
+.macro rnd
+	lda	$d012
+	eor	$dc04
+	sbc	$dc05
+.endmacro
+
 ;----------------------------------------------------------
 ;
 ;	Game specific
