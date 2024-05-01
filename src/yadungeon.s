@@ -14,7 +14,6 @@
 .segment "INIT"
 .segment "ONCE"
 .segment "CODE"
-.encoding "petscii_mixed"	; Default encoding
 
 ;----------------------------------------------------------
 ;
