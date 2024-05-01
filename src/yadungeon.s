@@ -21,13 +21,13 @@
 ;
 ;----------------------------------------------------------
 
-Start:	Init
+Start:	jsr	Init
 MainLoop:			; <- self modifying
-	QuickStats
-;	DrawScene
-	PlayersTurn
-	MonstersTurn
-	IsPlayerAlive
+	jsr	QuickStats
+;	jsr	DrawScene
+	jsr	PlayersTurn
+	jsr	MonstersTurn
+	jsr	IsPlayerAlive
 	inc24	Turn
 	jmp	MainLoop
 
@@ -37,15 +37,16 @@ MainLoop:			; <- self modifying
 ;
 ;----------------------------------------------------------
 
-.macro	Init {
+.proc	Init
 	lda	#BLACK
 	;sta	$d020
 	;sta	$d021
-	Print(@"\$0e\$9b\$93Welcome to YAD!\nPress any key!\n")	; Lowercase, lightgray on black, clear screen
+	Print	"\$0e\$9b\$93Welcome to YAD!\nPress any key!\n"	; Lowercase, lightgray on black, clear screen
 	GetKey
-	PrintC($93)		; clr
-	NewGame
-}
+	PrintC	$93		; clr
+	jsr	NewGame
+	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -53,9 +54,9 @@ MainLoop:			; <- self modifying
 ;
 ;----------------------------------------------------------
 
-.macro	NewGame {
-	InitRnd
-	InitHash
+.proc	NewGame
+	jsr	InitRnd
+	jsr	InitHash
 
 	ldx	#0
 Loop:	lda	#0
@@ -74,8 +75,8 @@ Loop:	lda	#0
 	mov	#100 : PlayerHP	; Dummy character creation
 	mov	#1 : PlayerZ	; Start from City1
 	
-	EnterDungeon
-}
+	jmp	EnterDungeon
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -83,14 +84,15 @@ Loop:	lda	#0
 ;
 ;----------------------------------------------------------
 
-.macro	PlayersTurn {
+.proc	PlayersTurn
 Loop:	GetKey
 	sta	ZP_FREE3
-	ClearMessage
+	jsr	ClearMessage
 	lda	ZP_FREE3
 	jsr	ProcessCommand
 	bcc	Loop		; Loop until a turn has passed
-}
+	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -98,14 +100,14 @@ Loop:	GetKey
 ;
 ;----------------------------------------------------------
 
-.macro	MonstersTurn {
+.proc	MonstersTurn
 	rnd
 	and	#7
 	bne	End
-	PrintMessage("Monsters hit you!")
+	PrintMessage	"Monsters hit you!"
 	dec	PlayerHP
-End:
-}
+End:	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -113,13 +115,13 @@ End:
 ;
 ;----------------------------------------------------------
 
-.macro	IsPlayerAlive {
+.proc	IsPlayerAlive
 	lda	PlayerHP
 	bne	Alive
-Dead:	PrintMessage("You died!")
-	QuitGame
-Alive:
-}
+Dead:	PrintMessage	"You died!"
+	jmp	QuitGame
+Alive:	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -127,9 +129,10 @@ Alive:
 ;
 ;----------------------------------------------------------
 
-.macro	QuitGame {
+.proc	QuitGame
 	mov	#RTS : MainLoop
-}
+	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -137,57 +140,58 @@ Alive:
 ;
 ;----------------------------------------------------------
 
-.macro	QuickStats {
-	PrintC($13)		; home
-	PrintC($11)		; down
+.proc	QuickStats
+	PrintC	$13		; home
+	PrintC	$11		; down
 	ldx	PlayerZ
 	beq	Wilderness
 	txa
 	and	#~$07
 	beq	Cities
-	Print(@"Dungeon   \n")
+	Print	"Dungeon   \n"
 	jmp	Details
 Cities:
-	Print(@"City      \n")
+	Print	"City      \n"
 	jmp	Details
 Wilderness:
-	Print(@"Wilderness\n")
+	Print	"Wilderness\n"
 
 Details:
 	PrintX
 
-	Print(@"\nSize:\n")
+	Print	"\nSize:\n"
 	ldx	DungeonW
 	PrintX
-	PrintC('x')
+	PrintC	'x'
 	ldx	DungeonH
 	PrintX
 
-	Print(@" \nOffset:\n")
+	Print	" \nOffset:\n"
 	ldx	OffsetX
 	PrintX
-	PrintC('x')
+	PrintC	'x'
 	ldx	OffsetY
 	PrintX
-	Print(@"  \n")
+	Print	"  \n"
 
-	PrintC('@')
-	Print(@"\nx: ")
+	PrintC	'@'
+	Print	"\nx: "
 	lda	PlayerX
 	PrintA
-	Print(@" \ny: ")
+	Print	" \ny: "
 	lda	PlayerY
 	PrintA
-	Print(@" \nz: ")
+	Print	" \nz: "
 	lda	PlayerZ
 	PrintA
-	Print(@" \nHP: ")
+	Print	" \nHP: "
 	lda	PlayerHP
 	PrintA
 
-	Print(@" \nturn: ")
-	PrintN16(Turn)
-}
+	Print	" \nturn: "
+	PrintN16	Turn
+	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -196,56 +200,53 @@ Details:
 ;----------------------------------------------------------
 
 ; Draws the visible part of scene.
-.macro	DrawVisibleScene {
-	jsr	_DrawVisibleScene
-}
-
-_DrawVisibleScene:
+.proc	DrawVisibleScene
 	ldx	PlayerX
 	ldy	PlayerY
 	iny
-	RenderTile
-	PrintDungeonTile
+	jsr	RenderTile
+	jsr	PrintDungeonTile
 	ldx	PlayerX
 	ldy	PlayerY
 	dey
-	RenderTile
-	PrintDungeonTile
+	jsr	RenderTile
+	jsr	PrintDungeonTile
 	ldx	PlayerX
 	inx
 	ldy	PlayerY
-	RenderTile
-	PrintDungeonTile
+	jsr	RenderTile
+	jsr	PrintDungeonTile
 	ldx	PlayerX
 	dex
 	ldy	PlayerY
-	RenderTile
-	PrintDungeonTile
+	jsr	RenderTile
+	jsr	PrintDungeonTile
 	ldx	PlayerX
 	inx
 	ldy	PlayerY
 	iny
-	RenderTile
-	PrintDungeonTile
+	jsr	RenderTile
+	jsr	PrintDungeonTile
 	ldx	PlayerX
 	inx
 	ldy	PlayerY
 	dey
-	RenderTile
-	PrintDungeonTile
+	jsr	RenderTile
+	jsr	PrintDungeonTile
 	ldx	PlayerX
 	dex
 	ldy	PlayerY
 	dey
-	RenderTile
-	PrintDungeonTile
+	jsr	RenderTile
+	jsr	PrintDungeonTile
 	ldx	PlayerX
 	dex
 	ldy	PlayerY
 	iny
-	RenderTile
-	PrintDungeonTile
+	jsr	RenderTile
+	jsr	PrintDungeonTile
 	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -254,7 +255,7 @@ _DrawVisibleScene:
 ;
 ;----------------------------------------------------------
 
-.macro	OffsetUpdated {
+.proc	OffsetUpdated
 	sub OffsetX : #<(SCREENADDR + SCENEOFFSET) : _screenLo
 	lda	#>(SCREENADDR + SCENEOFFSET)
 	sbc	#0
@@ -265,7 +266,8 @@ _DrawVisibleScene:
 
 	mov	OffsetX : _ox
 	mov	OffsetY : _oy
-}
+	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -274,11 +276,7 @@ _DrawVisibleScene:
 ;
 ;----------------------------------------------------------
 
-.macro	AdjustOffset {
-	jsr	_AdjustOffset
-}
-
-_AdjustOffset:
+.proc	AdjustOffset
 	lda	PlayerX
 	sec
 	sbc	OffsetX
@@ -336,7 +334,7 @@ AdjDown:
 	lda	#0
 !:	jmp	ScrollUp	; What about double change (Y)?
 
-ScrollRight: {
+.proc ScrollRight
 	ldx	OffsetX		; X: old OffsetX
 	sta	OffsetX		; A: new OffsetX
 	stx	x
@@ -364,9 +362,9 @@ ClearColumn:
 	bmi	End
 	jmp	ClearColumn
 End:	jmp	Scrolled
-}
+.endproc
 
-ScrollLeft: {
+.proc ScrollLeft
 	ldx	OffsetX		; X: old OffsetX
 	sta	OffsetX		; A: new OffsetX
 	stx	x
@@ -394,9 +392,9 @@ ClearColumn:
 	bpl	End
 	jmp	ClearColumn
 End:	jmp	Scrolled
-}
+.endproc
 
-.macro	ScrollDownBy(n, exit) {
+.macro	ScrollDownBy	n, exit
 .for(var i = SCENEH - 1 ; i >= n ; i--) {
 	.var POS1 = SCREENADDR + SCENEOFFSET + (i - n) * SCREENW - 1
 	.var POS2 = SCREENADDR + SCENEOFFSET +  i      * SCREENW - 1
@@ -407,9 +405,9 @@ End:	jmp	Scrolled
 	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
 }
 	jmp	exit
-}
+.endmacro
 
-.macro ScrollUpBy(n, exit) {
+.macro ScrollUpBy	n, exit
 .for(var i = 0 ; i < SCENEH - n ; i++) {
 	.var POS1 = SCREENADDR + SCENEOFFSET + (i + n) * SCREENW - 1
 	.var POS2 = SCREENADDR + SCENEOFFSET +  i      * SCREENW - 1
@@ -420,9 +418,9 @@ End:	jmp	Scrolled
 	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
 }
 	jmp	exit
-}
+.endmacro
 
-ScrollDown: {
+.proc ScrollDown
 	ldy	OffsetY		; Y: old OffsetY
 	sta	OffsetY		; A: new OffsetY
 	iny
@@ -446,20 +444,20 @@ Done:	jmp	Scrolled
 ScrollDownTable:
 	.word	ScrollDown1, ScrollDown2, ScrollDown3, ScrollDown4, ScrollDown5, ScrollDown6
 ScrollDown1:
-	ScrollDownBy(1, Next)
+	ScrollDownBy	1, Next
 ScrollDown2:
-	ScrollDownBy(2, Next)
+	ScrollDownBy	2, Next
 ScrollDown3:
-	ScrollDownBy(3, Next)
+	ScrollDownBy	3, Next
 ScrollDown4:
-	ScrollDownBy(4, Next)
+	ScrollDownBy	4, Next
 ScrollDown5:
-	ScrollDownBy(5, Next)
+	ScrollDownBy	5, Next
 ScrollDown6:
-	ScrollDownBy(6, Next)
-}
+	ScrollDownBy	6, Next
+.endproc
 
-ScrollUp: {
+.proc ScrollUp
 	ldy	OffsetY		; Y: old OffsetY
 	sta	OffsetY		; A: new OffsetY
 	sta	a
@@ -484,22 +482,22 @@ Done:	jmp	Scrolled
 ScrollUpTable:
 	.word	ScrollUp1, ScrollUp2, ScrollUp3, ScrollUp4, ScrollUp5, ScrollUp6
 ScrollUp1:
-	ScrollUpBy(1, Next)
+	ScrollUpBy	1, Next
 ScrollUp2:
-	ScrollUpBy(2, Next)
+	ScrollUpBy	2, Next
 ScrollUp3:
-	ScrollUpBy(3, Next)
+	ScrollUpBy	3, Next
 ScrollUp4:
-	ScrollUpBy(4, Next)
+	ScrollUpBy	4, Next
 ScrollUp5:
-	ScrollUpBy(5, Next)
+	ScrollUpBy	5, Next
 ScrollUp6:
-	ScrollUpBy(6, Next)
-}
+	ScrollUpBy	6, Next
+.endproc
 
 Scrolled:
-	OffsetUpdated
-	rts
+	jmp	OffsetUpdated
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -507,11 +505,11 @@ Scrolled:
 ;
 ;----------------------------------------------------------
 
-.macro	DrawScene {
+.proc	DrawScene
 	mov	#JSR_ABS : _tile
 	mov16 #_RenderTile : _tile+1
-	jsr	_DrawScene
-}
+	jmp	_DrawScene
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -519,14 +517,14 @@ Scrolled:
 ;
 ;----------------------------------------------------------
 
-.macro	ClearScene {
+.proc	ClearScene
 	mov	#NOP : _tile
 	mov	#LDA_IMM : _tile+1
 	mov	#' ' : 	_tile+2
-	jsr	_DrawScene
-}
+	; fall through _DrawScene
+.endproc
 
-_DrawScene:
+.proc _DrawScene
 	lda	_screenLo:#0
 	sta	screen
 	lda	_screenHi:#0
@@ -536,7 +534,7 @@ _DrawScene:
 y:	dey
 	ldx	_x:#0
 x:	dex
-_tile:	RenderTile
+_tile:	jsr	RenderTile
 	sta	screen:SCREENADDR, x
 	cpx	_ox:#0
 	bne	x
@@ -544,6 +542,7 @@ _tile:	RenderTile
 	cpy	_oy:#0
 	bne	y
 	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -554,11 +553,7 @@ _tile:	RenderTile
 ;
 ;----------------------------------------------------------
 
-.macro SpawnMonster {
-	jsr	_SpawnMonster
-}
-
-_SpawnMonster: {
+.proc SpawnMonster
 X = ZP_FREE0
 Y = ZP_FREE1
 	stx	X
@@ -584,7 +579,7 @@ Y = ZP_FREE1
 	ldx	X
 	ldy	Y
 	rts
-}
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -593,7 +588,7 @@ Y = ZP_FREE1
 ;
 ;----------------------------------------------------------
 
-.macro KillMonster {
+.proc KillMonster
 	mov	#0 : MonsterHP, x	; 0 HP == dead
 	mov	#0 : MonsterState1, x
 	sta	MonsterState2, x
@@ -601,10 +596,11 @@ Y = ZP_FREE1
 	tay
 	lda	MonsterX, x
 	tax
-	RenderTile
-	PrintDungeonTile
-	PrintMessage("It dies.")
-}
+	jsr	RenderTile
+	jsr	PrintDungeonTile
+	PrintMessage	"It dies."
+	rts
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -615,7 +611,7 @@ Y = ZP_FREE1
 ;
 ;----------------------------------------------------------
 
-.macro	RenderTile {
+.proc	RenderTile
 	jsr	_RenderTile
 
 	cmp	#'.'
@@ -626,16 +622,16 @@ Y = ZP_FREE1
 	lda	MonsterCnt
 	cmp	#20		; Max nr of monsters per dungeon
 	bcs	NotSpawn
-	SpawnMonster
+	jsr	SpawnMonster
 	jmp	End
 NotSpawn:
 	lda	ZP_FREE3
-End:
-}
+End:	rts
+.endproc
 
-_RenderTile:
-	RenderBorder
-	RenderMonster
+.proc _RenderTile
+	jsr	RenderBorder
+	jsr	RenderMonster
 
 	cpx	#40		; Test tunnels
 	bne	!+
@@ -646,16 +642,17 @@ _RenderTile:
 	lda	#'.'
 	rts
 !:
-	RenderRoom(16, 16, 1/30)
-	RenderRoom(8, 8, 1/16)
-	RenderRoom(16, 1, 1/8)
-	RenderRoom(1, 16, 1/8)
-	RenderRoom(4, 2, 1/8)
+	RenderRoom	16, 16, 1/30
+	RenderRoom	8, 8, 1/16
+	RenderRoom	16, 1, 1/8
+	RenderRoom	1, 16, 1/8
+	RenderRoom	4, 2, 1/8
 	lda	#'#'		; Fall back to default rock
 	rts
+.endproc
 
 ; Impenetrable border around each landscape/dungeon
-.macro	RenderBorder {
+.proc	RenderBorder
 	txa
 	beq	Border
 	cmp	DungeonMaxX
@@ -665,12 +662,11 @@ _RenderTile:
 	cmp	DungeonMaxY
 	bcc	End
 Border:	lda	#'%'		; Fence
-	rts
-End:
-}
+End:	rts
+.endproc
 
 ; Find an existing monster here
-.macro RenderMonster {
+.proc RenderMonster
 X = 	ZP_FREE0
 Y = 	ZP_FREE1
 
@@ -704,11 +700,11 @@ Next:	cpx	#0
 NotFound:
 	ldx	X
 	ldy	Y
-}
-
+	rts
+.endproc
 
 ; A simple parametric room
-.macro	RenderRoom(xsize, ysize, chance) {
+.macro	RenderRoom xsize, ysize, chance
 	txa
 	and	#-xsize	; block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
 	HashA
@@ -717,7 +713,7 @@ NotFound:
 	tya
 	and	#-ysize	; block size Y: $f0 = 16, $f8 = 8, $fc = 4, etc
 	eor	xc:#0
-	HashAwithM(PlayerZ)
+	HashAwithM	PlayerZ
 
 	cmp	#256 * chance	; block chance: $40:$100 = 1:4
 	bcs	End
@@ -739,7 +735,7 @@ NotFound:
 	lda	#'.'		; Floor
 	rts
 End:
-}	
+.endmacro
 	
 ;----------------------------------------------------------
 ;
@@ -789,18 +785,18 @@ ProcessCommand:
 IllegalCommand:
 	txa
 	jsr	CHROUT
-	PrintMessage("Illegal command received")
+	PrintMessage	"Illegal command received"
 	clc
 	rts
 
-.macro	MovePlayerBy(x, y) {
+.macro	MovePlayerBy	x, y
 	ldx	PlayerX
 	ldy	PlayerY
 .if (x == -1)	dex
 .if (x ==  1)	inx
 .if (y == -1)	dey
 .if (y ==  1)	iny
-	RenderTile
+	jsr	RenderTile
 	cmp	#'.'
 	beq	Floor
 	cmp	#'#'
@@ -809,91 +805,91 @@ IllegalCommand:
 	beq	Wall
 	jmp	_Something
 Wall:	jmp	_Wall
-Floor:	HidePlayer
+Floor:	jsr	HidePlayer
 .if (x == -1)	dec	PlayerX
 .if (x ==  1)	inc	PlayerX
 .if (y == -1)	dec	PlayerY
 .if (y ==  1)	inc	PlayerY
 	jmp	_MovePlayerBy
-}
+.endmacro
 
 _MovePlayerBy:
-	AdjustOffset
-	DrawVisibleScene
-	PrintPlayer
+	jsr	AdjustOffset
+	jsr	DrawVisibleScene
+	jsr	PrintPlayer
 	sec
 	rts
 
-_Wall:	PrintMessage("There is a wall in the way!")
+_Wall:	PrintMessage	"There is a wall in the way!"
 	clc
 	rts
 
 _Something:
-	PrintMessage("You hit something!")
+	PrintMessage	"You hit something!"
 	ldx	LastMonsterIdx
-	KillMonster
+	jsr	KillMonster
 	sec
 	rts
 
 CommandDown:
-	MovePlayerBy(0, -1)
+	MovePlayerBy	0, -1
 CommandUp:
-	MovePlayerBy(0, 1)
+	MovePlayerBy	0, 1
 CommandRight:
-	MovePlayerBy(1, 0)
+	MovePlayerBy	1, 0
 CommandLeft:
-	MovePlayerBy(-1, 0)
+	MovePlayerBy	-1, 0
 
 CommandFoo:
 	txa
 	jsr	CHROUT
-	PrintMessage("Valid but unimplemented command received")
+	PrintMessage	"Valid but unimplemented command received"
 	sec
 	rts
 
 CommandSelf:	
-	PrintMessage("Printing character info")
+	PrintMessage	"Printing character info"
 	clc
 	rts
 
 Command_a:	
-	PrintMessage("Aim wand")
+	PrintMessage	"Aim wand"
 	sec
 	rts
 
 Command_l:
-	PrintMessage("Look around")
-	DrawScene
-	PrintPlayer
+	PrintMessage	"Look around"
+	jsr	DrawScene
+	jsr	PrintPlayer
 	clc
 	rts
 
 Command_q:	
-	PrintMessage("Quitting")
-	QuitGame
+	PrintMessage	"Quitting"
+	jsr	QuitGame
 	sec
 	rts
 
 Command_r:	
-	PrintMessage("Resting to full HP")
+	PrintMessage	"Resting to full HP"
 	mov	#250 : PlayerHP
 	sec
 	rts
 
 Command_z:	
-	PrintMessage("Zap rod")
+	PrintMessage	"Zap rod"
 	sec
 	rts
 
 Command_upstairs:
 	dec	PlayerZ
-	EnterDungeon
+	jsr	EnterDungeon
 	sec
 	rts
 
 Command_downstairs:
 	inc	PlayerZ
-	EnterDungeon
+	jsr	EnterDungeon
 	sec
 	rts
 
@@ -917,7 +913,7 @@ CommandTable:
 ;----------------------------------------------------------
 
 ; Prints a constant string to the message bar with -more- if needed
-.macro	PrintMessage(string) {
+.macro	PrintMessage	string
 	mov16	#Text : Message
 	mov	#End - Text : MessageSize
 	
@@ -928,7 +924,7 @@ Text:	.encoding "screencode_mixed"
 	.encoding "petscii_mixed"
 	
 End:	
-}
+.endmacro
 
 _more_ = "-more-"
 _more:	
@@ -936,15 +932,15 @@ _more:
 	.text	_more_
 	.encoding "petscii_mixed"
 
-_PrintMessage:
+.proc _PrintMessage
 	lda	MessageCursor
 	clc
 	adc	MessageSize
 	cmp	#SCREENW - _more_.size
 	bcc	!+
-	Copy(_more, SCREENADDR + SCREENW - _more_.size, _more_.size)
+	Copy	_more, SCREENADDR + SCREENW - _more_.size, _more_.size
 	GetKey
-	ClearMessage
+	jsr	ClearMessage
 !:	ldx	#0
 !:	lda	Message:$beef, x
 	sta	MessageCursor:SCREENADDR
@@ -955,29 +951,28 @@ _PrintMessage:
 	inc	MessageCursor
 	lda	MessageCursor
 	rts
+.endproc
 
-.macro	ClearMessage {
-	Fill(SCREENADDR, ' ', SCREENW)
+.proc	ClearMessage
+	Fill	SCREENADDR, ' ', SCREENW
 	mov	#0 : MessageCursor
-}
+	rts
+.endproc
 
 ; Prints a char at given scene coordinates
 ; X, Y: scene relative coordinates, A: character to print
-.macro	PrintSceneTile {
+.proc	PrintSceneTile
 	sta	char
 	mov	SceneLo, y : pos
 	mov	SceneHi, y : pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
-}
+	rts
+.endproc
 
 ; Prints a char at a given dungeon position
 ; X, Y: dungeon relative coordinates, A: character to print
-.macro	PrintDungeonTile {
-	jsr	_PrintDungeonTile
-}
-
-_PrintDungeonTile: {
+.proc	PrintDungeonTile
 	sta	char
 	txa
 	sec
@@ -992,26 +987,26 @@ _PrintDungeonTile: {
 	lda	char:#0
 	sta	pos:SCREENADDR, x
 	rts
-}
+.endproc
 
 ; Replaces Player with underlying tile on screen
-.macro	HidePlayer {
+.proc	HidePlayer
 	;ldx	PlayerX
 	;ldy	PlayerY
-	;RenderTile
+	;jsr	RenderTile
 	lda	#'.'
 	ldx	PlayerX
 	ldy	PlayerY
-	PrintDungeonTile
-}
+	jmp	PrintDungeonTile
+.endproc
 
 ; Makes Player visible
-.macro	PrintPlayer {
+.proc	PrintPlayer
 	ldx	PlayerX
 	ldy	PlayerY
 	lda	#00		; '@'
-	PrintDungeonTile
-}
+	jmp	PrintDungeonTile
+.endproc
 
 SceneLo:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) .byte <(SCREENADDR + SCENEOFFSET + i * SCREENW)
@@ -1024,18 +1019,14 @@ SceneHi:
 ;
 ;----------------------------------------------------------
 
-.macro	EnterDungeon {
-	jsr	_EnterDungeon
-}
-
-_EnterDungeon: {
+.proc	EnterDungeon
 	lda	#10		; Entry point
 	sta	PlayerX
 	sta	PlayerY
 	lda	#2
 	sta	OffsetX
 	sta	OffsetY
-	OffsetUpdated
+	jsr	OffsetUpdated
 
 	lda	PlayerZ
 	bne	Regular		; Wilderness has a fixed size
@@ -1093,11 +1084,11 @@ NotHere:
 	sta	oy2
 	sta	oy3
 	
-	ClearScene
-	DrawVisibleScene
-	PrintPlayer
+	jsr	ClearScene
+	jsr	DrawVisibleScene
+	jsr	PrintPlayer
 	rts
-}
+.endproc
 
 ;----------------------------------------------------------
 ;
@@ -1106,7 +1097,7 @@ NotHere:
 ;----------------------------------------------------------
 
 ; Prints a constant string
-.macro	Print(string) {
+.macro	Print	string
 	ldy	#0
 Loop:	lda	Output,y
 	beq	End
@@ -1116,48 +1107,49 @@ Loop:	lda	Output,y
 Output:	.text	string
 	.byte	0
 End:	
-}
+.endmacro
 
 ; Prints a char (stored in A)
-.macro	PrintC(char) {
+.macro	PrintC	char
 	lda	#char
         jsr     CHROUT
-}
+.endmacro
 
 ; Prints the decimal value of X
-.macro	PrintX {
+.macro	PrintX
 	lda	#0
 	jsr	$BDCD
-}
+.endmacro
 
 ; Prints the decimal value of A
-.macro	PrintA {
+.macro	PrintA
 	tax
 	PrintX
-}
+.endmacro
 
 ; Prints a 16 bit decimal value
-.macro	PrintN16(arg) {
+.macro	PrintN16	arg
 	ldx	arg
 	lda	arg + 1
 	jsr	$BDCD
-}
+.endmacro
 
 ; Prints a char at a given screen position
 ; X, Y: screen relative coordinates, A: character to print
-.macro	PrintCXY(char) {
+.macro	PrintCXY	char
 	mov	RowsLo, y : pos
 	mov	RowsHi, y : pos+1
 	lda	#char
 	sta	pos:SCREENADDR, x
-}
-.macro	PrintAXY {
+.endmacro
+
+.macro	PrintAXY
 	sta	char
 	mov	RowsLo, y : pos
 	mov	RowsHi, y : pos+1
 	lda	char:#0
 	sta	pos:SCREENADDR, x
-}
+.endmacro
 
 RowsLo:
 .for(var i = SCREENH - 1 ; i != 0 ; i--) .byte <(SCREENADDR + i * SCREENW)
@@ -1165,30 +1157,30 @@ RowsHi:
 .for(var i = SCREENH - 1 ; i != 0 ; i--) .byte >(SCREENADDR + i * SCREENW)
 
 ; Returns key in A
-.macro	GetKey {
+.macro	GetKey
 Wait:	jsr	GETIN
 	cmp	#0
 	beq	Wait
-}
+.endmacro
 
 ; Fill "len" bytes of memory starting from "addr" with "byte". If "len" is 0 then fill 256 bytes.
-.macro	Fill(addr, byte, len) {
+.macro	Fill	addr, byte, len
 	ldx	#len - 1
 	lda	#byte
 Loop:	sta	addr, x
 	dex
 	bne	Loop
 	sta	addr
-}
+.endmacro
 
 ; Copy "len" bytes of memory starting from "src" to "dst". If "len" is 0 then copy 256 bytes.
-.macro	Copy(src, dst, len) {
+.macro	Copy	src, dst, len
 	ldx	#len - 1
 Loop:	mov	src, x : dst, x
 	dex
 	bne	Loop
 	mov	src, x : dst, x
-}
+.endmacro
 
 .pseudocommand mov src:tar {
 	lda	src
@@ -1290,13 +1282,13 @@ over:
 ;
 ;----------------------------------------------------------
 
-.pseudocommand rnd {
+.macro rnd
 	lda	$d012
 	eor	$dc04
 	sbc	$dc05
-}
+.endmacro
 
-.macro	InitRnd {
+.proc	InitRnd
 	rnd
 	sta	Seed
 	rnd
@@ -1308,9 +1300,10 @@ Loop:	rnd
 	sta	Rnd2, x
 	inx
 	bne	Loop
-}
+	rts
+.endproc
 
-.macro	InitHash {
+.proc	InitHash
 	ldx	#0
 	rnd
 Loop:	cmp	#0
@@ -1324,31 +1317,32 @@ noEor:	sta	Hash, x
 	inx
 	inx
 	bne	Loop
-}
+	rts
+.endproc
 
-.macro	HashA {
+.macro	HashA
 	sta	vector
 	lda	vector:Hash
-}
+.endmacro
 
-.macro	HashM(addr) {
+.macro	HashM	addr
 	lda	addr
 	HashA
-}
+.endmacro
 
-.macro	HashAwithM(addr) {
+.macro	HashAwithM	addr
 	HashA
 	eor	addr
 	HashA
-}
+.endmacro
 
-.macro	HashAwithX {
+.macro	HashAwithX
 	eor	Hash,x
-}
+.endmacro
 
-.macro	HashAwithY {
+.macro	HashAwithY
 	eor	Hash,y
-}
+.endmacro
 
 ;----------------------------------------------------------
 ;
