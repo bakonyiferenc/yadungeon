@@ -1,8 +1,14 @@
-#define C64
+.ifdef __C64__
+	.include "c64.inc"
+.endif
 
-#importif	C64	"c64.inc"
-#importif	C128	"c128.inc"
-#importif	X16	"x16.inc"
+.ifdef __C128__
+	.include "c128.inc"
+.endif
+
+.ifdef __CX16__
+	.include "cx16.inc"
+.endif
 
 BasicUpstart2(Start)
 .encoding "petscii_mixed"	; Default encoding
