@@ -5,45 +5,45 @@
 #importif	X16	"x16.inc"
 
 BasicUpstart2(Start)
-.encoding "petscii_mixed"	// Default encoding
+.encoding "petscii_mixed"	; Default encoding
 
-//----------------------------------------------------------
-//
-//	Yet Another Dungeon
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Yet Another Dungeon
+;
+;----------------------------------------------------------
 
 Start:	Init()
-MainLoop:			// <- self modifying
+MainLoop:			; <- self modifying
 	QuickStats()
-//	DrawScene()
+;	DrawScene()
 	PlayersTurn()
 	MonstersTurn()
 	IsPlayerAlive()
 	inc24	Turn
 	jmp	MainLoop
 
-//----------------------------------------------------------
-//
-//	Initialize
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Initialize
+;
+;----------------------------------------------------------
 
 .macro	Init() {
 	lda	#BLACK
-	//sta	$d020
-	//sta	$d021
-	Print(@"\$0e\$9b\$93Welcome to YAD!\nPress any key!\n")	// Lowercase, lightgray on black, clear screen
+	;sta	$d020
+	;sta	$d021
+	Print(@"\$0e\$9b\$93Welcome to YAD!\nPress any key!\n")	; Lowercase, lightgray on black, clear screen
 	GetKey()
-	PrintC($93)		// clr
+	PrintC($93)		; clr
 	NewGame()
 }
 
-//----------------------------------------------------------
-//
-//	Start a new game
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Start a new game
+;
+;----------------------------------------------------------
 
 .macro	NewGame() {
 	InitRnd()
@@ -57,23 +57,23 @@ Loop:	lda	#0
 	sta	MonsterHP, x
 	sta	MonsterState1, x
 	sta	MonsterState2, x
-	mov	#$ff : MonsterZ, x	// Hoping all Monsters will (re)spawn till Player reaches dungeon level 255
+	mov	#$ff : MonsterZ, x	; Hoping all Monsters will (re)spawn till Player reaches dungeon level 255
 	inx
 	bne	Loop
 
-	mov24	#1 : Turn	// Reset turn counter
+	mov24	#1 : Turn	; Reset turn counter
 
-	mov	#100 : PlayerHP	// Dummy character creation
-	mov	#1 : PlayerZ	// Start from City1
+	mov	#100 : PlayerHP	; Dummy character creation
+	mov	#1 : PlayerZ	; Start from City1
 	
 	EnterDungeon()
 }
 
-//----------------------------------------------------------
-//
-//	Player's turn
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Player's turn
+;
+;----------------------------------------------------------
 
 .macro	PlayersTurn() {
 Loop:	GetKey()
@@ -81,14 +81,14 @@ Loop:	GetKey()
 	ClearMessage()
 	lda	ZP_FREE3
 	jsr	ProcessCommand
-	bcc	Loop		// Loop until a turn has passed
+	bcc	Loop		; Loop until a turn has passed
 }
 
-//----------------------------------------------------------
-//
-//	Monsters are next
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Monsters are next
+;
+;----------------------------------------------------------
 
 .macro	MonstersTurn() {
 	rnd
@@ -99,11 +99,11 @@ Loop:	GetKey()
 End:
 }
 
-//----------------------------------------------------------
-//
-//	Is player still alive?
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Is player still alive?
+;
+;----------------------------------------------------------
 
 .macro	IsPlayerAlive() {
 	lda	PlayerHP
@@ -113,25 +113,25 @@ Dead:	PrintMessage("You died!")
 Alive:
 }
 
-//----------------------------------------------------------
-//
-//	Quit game
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Quit game
+;
+;----------------------------------------------------------
 
 .macro	QuitGame() {
 	mov	#RTS : MainLoop
 }
 
-//----------------------------------------------------------
-//
-//	Print quickstats
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Print quickstats
+;
+;----------------------------------------------------------
 
 .macro	QuickStats() {
-	PrintC($13)		// home
-	PrintC($11)		// down
+	PrintC($13)		; home
+	PrintC($11)		; down
 	ldx	PlayerZ
 	beq	Wilderness
 	txa
@@ -181,13 +181,13 @@ Details:
 	PrintN16(Turn)
 }
 
-//----------------------------------------------------------
-//
-//	Draw scene around player
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Draw scene around player
+;
+;----------------------------------------------------------
 
-// Draws the visible part of scene.
+; Draws the visible part of scene.
 .macro	DrawVisibleScene() {
 	jsr	_DrawVisibleScene
 }
@@ -239,12 +239,12 @@ _DrawVisibleScene:
 	PrintDungeonTile()
 	rts
 
-//----------------------------------------------------------
-//
-// Updates aux variables. 
-// Must be called when Offset{XY} was changed.
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+; Updates aux variables. 
+; Must be called when Offset{XY} was changed.
+;
+;----------------------------------------------------------
 
 .macro	OffsetUpdated() {
 	sub OffsetX : #<(SCREENADDR + SCENEOFFSET) : _screenLo
@@ -259,12 +259,12 @@ _DrawVisibleScene:
 	mov	OffsetY : _oy
 }
 
-//----------------------------------------------------------
-//
-// Scrolls the scene when needed.
-// Must be called when Player{XY} was changed.
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+; Scrolls the scene when needed.
+; Must be called when Player{XY} was changed.
+;
+;----------------------------------------------------------
 
 .macro	AdjustOffset() {
 	jsr	_AdjustOffset
@@ -291,52 +291,52 @@ AdjEnd:	rts
 AdjRight:
 	lda	OffsetX
 	cmp	ox1:#0
-	beq	AdjY		// already at the far end, skip scroll
+	beq	AdjY		; already at the far end, skip scroll
 	clc
 	adc	#SCENEW * 1 / 4
 	cmp	ox2:#0
 	bcc	!+
 	lda	ox3:#0
-!:	jmp	ScrollLeft	// What about double change (Y)?
+!:	jmp	ScrollLeft	; What about double change (Y)?
 
 AdjLeft:
 	lda	OffsetX
-	beq	AdjY		// already at the far end, skip scroll
+	beq	AdjY		; already at the far end, skip scroll
 	sec
 	sbc	#SCENEW * 1 / 4
 	bcs	!+
 	lda	#0
-!:	jmp	ScrollRight	// What about double change (Y)?
+!:	jmp	ScrollRight	; What about double change (Y)?
 
 AdjUp:
 	lda	OffsetY
 	cmp	oy1:#0
-	beq	AdjEnd		// already at the far end, skip scroll
+	beq	AdjEnd		; already at the far end, skip scroll
 	clc
 	adc	#SCENEH * 1 / 4
 	cmp	oy2:#0
 	bcc	!+
 	lda	oy3:#0
-!:	jmp	ScrollDown	// What about double change (Y)?
+!:	jmp	ScrollDown	; What about double change (Y)?
 
 AdjDown:
 	lda	OffsetY
-	beq	AdjEnd		// already at the far end, skip scroll
+	beq	AdjEnd		; already at the far end, skip scroll
 	sec
 	sbc	#SCENEH * 1 / 4
 	bcs	!+
 	lda	#0
-!:	jmp	ScrollUp	// What about double change (Y)?
+!:	jmp	ScrollUp	; What about double change (Y)?
 
 ScrollRight: {
-	ldx	OffsetX		// X: old OffsetX
-	sta	OffsetX		// A: new OffsetX
+	ldx	OffsetX		; X: old OffsetX
+	sta	OffsetX		; A: new OffsetX
 	stx	x
 	sec
 	sbc	x:#0
 	clc
 	adc	#SCENEW - 1
-	tax			// SCENEW - (X - A) - 1
+	tax			; SCENEW - (X - A) - 1
 	ldy	#SCENEW - 1
 MoveColumn:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) {
@@ -359,14 +359,14 @@ End:	jmp	Scrolled
 }
 
 ScrollLeft: {
-	ldx	OffsetX		// X: old OffsetX
-	sta	OffsetX		// A: new OffsetX
+	ldx	OffsetX		; X: old OffsetX
+	sta	OffsetX		; A: new OffsetX
 	stx	x
 	sec
 	sbc	x:#0
 	clc
 	adc	#-SCENEW
-	tax			// -SCENEW + (A - X)
+	tax			; -SCENEW + (A - X)
 	ldy	#-SCENEW
 MoveColumn:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) {
@@ -415,8 +415,8 @@ End:	jmp	Scrolled
 }
 
 ScrollDown: {
-	ldy	OffsetY		// Y: old OffsetY
-	sta	OffsetY		// A: new OffsetY
+	ldy	OffsetY		; Y: old OffsetY
+	sta	OffsetY		; A: new OffsetY
 	iny
 	sty	y
 	sec
@@ -452,8 +452,8 @@ ScrollDown6:
 }
 
 ScrollUp: {
-	ldy	OffsetY		// Y: old OffsetY
-	sta	OffsetY		// A: new OffsetY
+	ldy	OffsetY		; Y: old OffsetY
+	sta	OffsetY		; A: new OffsetY
 	sta	a
 	dey
 	tya
@@ -493,11 +493,11 @@ Scrolled:
 	OffsetUpdated()
 	rts
 
-//----------------------------------------------------------
-//
-// Draws the whole scene, visible or not.
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+; Draws the whole scene, visible or not.
+;
+;----------------------------------------------------------
 
 .macro	DrawScene() {
 	mov	#JSR_ABS : _tile
@@ -505,11 +505,11 @@ Scrolled:
 	jsr	_DrawScene
 }
 
-//----------------------------------------------------------
-//
-// Clears the whole scene
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+; Clears the whole scene
+;
+;----------------------------------------------------------
 
 .macro	ClearScene() {
 	mov	#NOP : _tile
@@ -537,14 +537,14 @@ _tile:	RenderTile()
 	bne	y
 	rts
 
-//----------------------------------------------------------
-//
-//	Spawn a new monster
-//	Input: X, Y: dungeon coordinates (0-255)
-//	Returns a char representing the monster in A
-//	Keeps: X, Y
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Spawn a new monster
+;	Input: X, Y: dungeon coordinates (0-255)
+;	Returns a char representing the monster in A
+;	Keeps: X, Y
+;
+;----------------------------------------------------------
 
 .macro SpawnMonster() {
 	jsr	_SpawnMonster
@@ -563,12 +563,12 @@ _SpawnMonster: {
 	mov	X : MonsterX, y
 	mov	Y : MonsterY, y
 	mov	PlayerZ : MonsterZ, y
-	mov	#255 : MonsterHP, y	// Max HP
+	mov	#255 : MonsterHP, y	; Max HP
 	mov	#0 : MonsterState1, y
 	sta	MonsterState2, y
 	tya
 	sta	MonsterCache, x	
-	rnd			// Monster type
+	rnd			; Monster type
 	sta	Monster, y
 	sta	LastMonster
 	sty	LastMonsterIdx
@@ -578,15 +578,15 @@ _SpawnMonster: {
 	rts
 }
 
-//----------------------------------------------------------
-//
-//	Kill a monster
-//	Input: X: monster idx
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Kill a monster
+;	Input: X: monster idx
+;
+;----------------------------------------------------------
 
 .macro KillMonster() {
-	mov	#0 : MonsterHP, x	// 0 HP == dead
+	mov	#0 : MonsterHP, x	; 0 HP == dead
 	mov	#0 : MonsterState1, x
 	sta	MonsterState2, x
 	lda	MonsterY, x
@@ -598,14 +598,14 @@ _SpawnMonster: {
 	PrintMessage("It dies.")
 }
 
-//----------------------------------------------------------
-//
-//	Render a tile
-//	Input: X, Y: dungeon coordinates (0-255)
-//	Returns a char in A
-//	Keeps: X, Y
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Render a tile
+;	Input: X, Y: dungeon coordinates (0-255)
+;	Returns a char in A
+;	Keeps: X, Y
+;
+;----------------------------------------------------------
 
 .macro	RenderTile() {
 	jsr	_RenderTile
@@ -614,9 +614,9 @@ _SpawnMonster: {
 	bne	End
 	sta	ZP_FREE3
 	rnd
-	bne	NotSpawn	// Chance of a monster spawn = 1 : 256
+	bne	NotSpawn	; Chance of a monster spawn = 1 : 256
 	lda	MonsterCnt
-	cmp	#20		// Max nr of monsters per dungeon
+	cmp	#20		; Max nr of monsters per dungeon
 	bcs	NotSpawn
 	SpawnMonster()
 	jmp	End
@@ -629,7 +629,7 @@ _RenderTile:
 	RenderBorder()
 	RenderMonster()
 
-	cpx	#40		// Test tunnels
+	cpx	#40		; Test tunnels
 	bne	!+
 	lda	#'.'
 	rts
@@ -643,10 +643,10 @@ _RenderTile:
 	RenderRoom(16, 1, 1/8)
 	RenderRoom(1, 16, 1/8)
 	RenderRoom(4, 2, 1/8)
-	lda	#'#'		// Fall back to default rock
+	lda	#'#'		; Fall back to default rock
 	rts
 
-// Impenetrable border around each landscape/dungeon
+; Impenetrable border around each landscape/dungeon
 .macro	RenderBorder() {
 	txa
 	beq	Border
@@ -656,12 +656,12 @@ _RenderTile:
 	beq	Border
 	cmp	DungeonMaxY
 	bcc	End
-Border:	lda	#'%'		// Fence
+Border:	lda	#'%'		; Fence
 	rts
 End:
 }
 
-// Find an existing monster here
+; Find an existing monster here
 .macro RenderMonster() {
 .const	X = 	ZP_FREE0
 .const	Y = 	ZP_FREE1
@@ -682,7 +682,7 @@ Loop:	dex
 	bne	Next
 
 Found:	lda	MonsterHP, y
-	beq	Next		// monster is dead
+	beq	Next		; monster is dead
 
 Alive:	lda	Monster, y
 	sta	LastMonster
@@ -699,19 +699,19 @@ NotFound:
 }
 
 
-// A simple parametric room
+; A simple parametric room
 .macro	RenderRoom(xsize, ysize, chance) {
 	txa
-	and	#-xsize	// block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
+	and	#-xsize	; block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
 	HashA()
 	sta	xc
 
 	tya
-	and	#-ysize	// block size Y: $f0 = 16, $f8 = 8, $fc = 4, etc
+	and	#-ysize	; block size Y: $f0 = 16, $f8 = 8, $fc = 4, etc
 	eor	xc:#0
 	HashAwithM(PlayerZ)
 
-	cmp	#256 * chance	// block chance: $40:$100 = 1:4
+	cmp	#256 * chance	; block chance: $40:$100 = 1:4
 	bcs	End
 
 	sta	yoffs
@@ -728,29 +728,29 @@ NotFound:
 	and	#ysize - 1
 	cmp	cmpy:#0
 	bcc	End
-	lda	#'.'		// Floor
+	lda	#'.'		; Floor
 	rts
 End:
 }	
 	
-//----------------------------------------------------------
-//
-//	Process a command (stored in A)
-//	Returns: C <- player completed a turn
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Process a command (stored in A)
+;	Returns: C <- player completed a turn
+;
+;----------------------------------------------------------
 
 ProcessCommand:
-	cmp	#$11	// cursor down
+	cmp	#$11	; cursor down
 	bne	!+
 	jmp	CommandDown
-!:	cmp	#$91	// cursor up
+!:	cmp	#$91	; cursor up
 	bne	!+
 	jmp	CommandUp
-!:	cmp	#$1d	// cursor right
+!:	cmp	#$1d	; cursor right
 	bne	!+
 	jmp	CommandRight
-!:	cmp	#$9d	// cursor left
+!:	cmp	#$9d	; cursor left
 	bne	!+
 	jmp	CommandLeft
 !:	cmp	#'<'
@@ -772,11 +772,11 @@ ProcessCommand:
 	sta	Lookup
 	jmp	Lookup:(CommandTable)
 
-//----------------------------------------------------------
-//
-//	Player commands
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Player commands
+;
+;----------------------------------------------------------
 
 IllegalCommand:
 	txa
@@ -891,24 +891,24 @@ Command_downstairs:
 
 .align	256
 CommandTable:
-.word	CommandSelf	// @
-.word	Command_a	// a
+.word	CommandSelf	; @
+.word	Command_a	; a
 .fillword	'l'-'b', CommandFoo
 .word	Command_l
 .fillword	'q'-'m', CommandFoo
 .word	Command_q
 .word	Command_r
 .fillword	'z'-'s', CommandFoo
-.word	Command_z	// z
+.word	Command_z	; z
 
 
-//----------------------------------------------------------
-//
-//	Game specific macros
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Game specific macros
+;
+;----------------------------------------------------------
 
-// Prints a constant string to the message bar with -more- if needed
+; Prints a constant string to the message bar with -more- if needed
 .macro	PrintMessage(string) {
 	mov16	#Text : Message
 	mov	#End - Text : MessageSize
@@ -953,8 +953,8 @@ _PrintMessage:
 	mov	#0 : MessageCursor
 }
 
-// Prints a char at given scene coordinates
-// X, Y: scene relative coordinates, A: character to print
+; Prints a char at given scene coordinates
+; X, Y: scene relative coordinates, A: character to print
 .macro	PrintSceneTile() {
 	sta	char
 	mov	SceneLo, y : pos
@@ -963,8 +963,8 @@ _PrintMessage:
 	sta	pos:SCREENADDR, x
 }
 
-// Prints a char at a given dungeon position
-// X, Y: dungeon relative coordinates, A: character to print
+; Prints a char at a given dungeon position
+; X, Y: dungeon relative coordinates, A: character to print
 .macro	PrintDungeonTile() {
 	jsr	_PrintDungeonTile
 }
@@ -986,22 +986,22 @@ _PrintDungeonTile: {
 	rts
 }
 
-// Replaces Player with underlying tile on screen
+; Replaces Player with underlying tile on screen
 .macro	HidePlayer() {
-	//ldx	PlayerX
-	//ldy	PlayerY
-	//RenderTile()
+	;ldx	PlayerX
+	;ldy	PlayerY
+	;RenderTile()
 	lda	#'.'
 	ldx	PlayerX
 	ldy	PlayerY
 	PrintDungeonTile()
 }
 
-// Makes Player visible
+; Makes Player visible
 .macro	PrintPlayer() {
 	ldx	PlayerX
 	ldy	PlayerY
-	lda	#00		// '@'
+	lda	#00		; '@'
 	PrintDungeonTile()
 }
 
@@ -1010,18 +1010,18 @@ SceneLo:
 SceneHi:
 .for(var i = SCENEH - 1 ; i >= 0 ; i--) .byte >(SCREENADDR + SCENEOFFSET + i * SCREENW)
 
-//----------------------------------------------------------
-//
-//	Called upon entering a new level
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Called upon entering a new level
+;
+;----------------------------------------------------------
 
 .macro	EnterDungeon() {
 	jsr	_EnterDungeon
 }
 
 _EnterDungeon: {
-	lda	#10		// Entry point
+	lda	#10		; Entry point
 	sta	PlayerX
 	sta	PlayerY
 	lda	#2
@@ -1030,7 +1030,7 @@ _EnterDungeon: {
 	OffsetUpdated()
 
 	lda	PlayerZ
-	bne	Regular		// Wilderness has a fixed size
+	bne	Regular		; Wilderness has a fixed size
 	lda	#$ff
 	sta	DungeonW
 	sta	DungeonH
@@ -1038,7 +1038,7 @@ _EnterDungeon: {
 	sta	DungeonMaxX
 	sta	DungeonMaxY
 	jmp	Monsters
-Regular:			// Calculate regular dungeon size
+Regular:			; Calculate regular dungeon size
 	HashA()
 	tay
 	and	PlayerZ
@@ -1055,7 +1055,7 @@ Regular:			// Calculate regular dungeon size
 	dex
 	stx	DungeonMaxY
 
-Monsters:			// Populate MonsterCache
+Monsters:			; Populate MonsterCache
 	ldx	#0
 	ldy	#0
 	lda	PlayerZ
@@ -1072,13 +1072,13 @@ NotHere:
 	bne	Loop
 	sty	MonsterCnt
 
-	lda	DungeonW	// For AdjustOffset()
+	lda	DungeonW	; For AdjustOffset()
 	sec
 	sbc	#SCENEW
 	sta	ox1
 	sta	ox2
 	sta	ox3
-	lda	DungeonH	// For AdjustOffset()
+	lda	DungeonH	; For AdjustOffset()
 	sec
 	sbc	#SCENEH
 	sta	oy1
@@ -1091,13 +1091,13 @@ NotHere:
 	rts
 }
 
-//----------------------------------------------------------
-//
-//	General macros & pseudocommands
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	General macros & pseudocommands
+;
+;----------------------------------------------------------
 
-// Prints a constant string
+; Prints a constant string
 .macro	Print(string) {
 	ldy	#0
 Loop:	lda	Output,y
@@ -1110,33 +1110,33 @@ Output:	.text	string
 End:	
 }
 
-// Prints a char (stored in A)
+; Prints a char (stored in A)
 .macro	PrintC(char) {
 	lda	#char
         jsr     CHROUT
 }
 
-// Prints the decimal value of X
+; Prints the decimal value of X
 .macro	PrintX() {
 	lda	#0
 	jsr	$BDCD
 }
 
-// Prints the decimal value of A
+; Prints the decimal value of A
 .macro	PrintA() {
 	tax
 	PrintX()
 }
 
-// Prints a 16 bit decimal value
+; Prints a 16 bit decimal value
 .macro	PrintN16(arg) {
 	ldx	arg
 	lda	arg + 1
 	jsr	$BDCD
 }
 
-// Prints a char at a given screen position
-// X, Y: screen relative coordinates, A: character to print
+; Prints a char at a given screen position
+; X, Y: screen relative coordinates, A: character to print
 .macro	PrintCXY(char) {
 	mov	RowsLo, y : pos
 	mov	RowsHi, y : pos+1
@@ -1156,14 +1156,14 @@ RowsLo:
 RowsHi:
 .for(var i = SCREENH - 1 ; i != 0 ; i--) .byte >(SCREENADDR + i * SCREENW)
 
-// Returns key in A
+; Returns key in A
 .macro	GetKey() {
 Wait:	jsr	GETIN
 	cmp	#0
 	beq	Wait
 }
 
-// Fill "len" bytes of memory starting from "addr" with "byte". If "len" is 0 then fill 256 bytes.
+; Fill "len" bytes of memory starting from "addr" with "byte". If "len" is 0 then fill 256 bytes.
 .macro	Fill(addr, byte, len) {
 	ldx	#len - 1
 	lda	#byte
@@ -1173,7 +1173,7 @@ Loop:	sta	addr, x
 	sta	addr
 }
 
-// Copy "len" bytes of memory starting from "src" to "dst". If "len" is 0 then copy 256 bytes.
+; Copy "len" bytes of memory starting from "src" to "dst". If "len" is 0 then copy 256 bytes.
 .macro	Copy(src, dst, len) {
 	ldx	#len - 1
 Loop:	mov	src, x : dst, x
@@ -1276,11 +1276,11 @@ over:
 over:
 }
 
-//----------------------------------------------------------
-//
-//	Random & Hash
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Random & Hash
+;
+;----------------------------------------------------------
 
 .pseudocommand rnd {
 	lda	$d012
@@ -1308,7 +1308,7 @@ Loop:	rnd
 Loop:	cmp	#0
 	beq	doEor
 	asl
-	beq	noEor	// if the input was $80, skip the EOR
+	beq	noEor	; if the input was $80, skip the EOR
 	bcc	noEor
 doEor:	eor	#$1d
 noEor:	sta	Hash, x
@@ -1342,27 +1342,27 @@ noEor:	sta	Hash, x
 	eor	Hash,y
 }
 
-//----------------------------------------------------------
-//
-//	Game date to save
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Game date to save
+;
+;----------------------------------------------------------
 
 .align	256
 Monster:	.fill 256, 0
 MonsterX:	.fill 256, 0
 MonsterY:	.fill 256, 0
-MonsterZ:	.fill 256, 255	// Current dungeon: 0 = wilderness, 1-7 = cities, 8-255 = dungeons
+MonsterZ:	.fill 256, 255	; Current dungeon: 0 = wilderness, 1-7 = cities, 8-255 = dungeons
 MonsterHP:	.fill 256, 0
-MonsterState1:	.fill 256, 0	// aggroed, sleeping, confused, stunned, feared, afraid, blind, deaf
-MonsterState2:	.fill 256, 0	// poisoned, bleeding, fast/slow/paralyzed, drugged, invulnerable
+MonsterState1:	.fill 256, 0	; aggroed, sleeping, confused, stunned, feared, afraid, blind, deaf
+MonsterState2:	.fill 256, 0	; poisoned, bleeding, fast/slow/paralyzed, drugged, invulnerable
 
 Rnd1:		.fill 256, 0
 Rnd2:		.fill 256, 0
 Hash:		.fill 256, 0
 Seed:		.word	0
 
-MonsterPtr:	.byte	0	// Points to next free monster slot
+MonsterPtr:	.byte	0	; Points to next free monster slot
 
 PlayerX:	.byte	0
 PlayerY:	.byte	0
@@ -1372,23 +1372,23 @@ PlayerState1:	.byte	0
 PlayerState2:	.byte	0
 
 Turn:		.byte	0, 0, 0
-OffsetX:	.byte	0	// To center the dungeon around the player
+OffsetX:	.byte	0	; To center the dungeon around the player
 OffsetY:	.byte	0
 
-//----------------------------------------------------------
-//
-//	Cached data (not to save)
-//
-//----------------------------------------------------------
+;----------------------------------------------------------
+;
+;	Cached data (not to save)
+;
+;----------------------------------------------------------
 
-DungeonW:	.byte	0	// Size of current dungeon
+DungeonW:	.byte	0	; Size of current dungeon
 DungeonH:	.byte	0
 DungeonMaxX:	.byte	0
 DungeonMaxY:	.byte	0
-MonsterCnt:	.byte	0	// Nr of monsters at current dungeon
-LastMonster:	.byte 	0	// Most recent monster
-LastMonsterIdx:	.byte 	0	// Index of most recent monster
+MonsterCnt:	.byte	0	; Nr of monsters at current dungeon
+LastMonster:	.byte 	0	; Most recent monster
+LastMonsterIdx:	.byte 	0	; Index of most recent monster
 
 .align 256
 
-MonsterCache:	.fill 256, 0	// Pointers to monsters at current dungeon
+MonsterCache:	.fill 256, 0	; Pointers to monsters at current dungeon
