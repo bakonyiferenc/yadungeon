@@ -24,8 +24,7 @@ Loop:	lda	Output,y
         jsr     CHROUT
 	iny
 	jmp	Loop
-Output:	.text	string
-	.byte	0
+Output:	.asciiz	string
 End:	
 .endmacro
 

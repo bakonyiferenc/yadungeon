@@ -919,26 +919,20 @@ CommandTable:
 	
 	jsr	_PrintMessage
 	jmp	End
-Text:	.encoding "screencode_mixed"
-	.text	string
-	.encoding "petscii_mixed"
+Text:	.byte	string
 	
 End:	
 .endmacro
 
-_more_ = "-more-"
-_more:	
-	.encoding "screencode_mixed"
-	.text	_more_
-	.encoding "petscii_mixed"
+_more:	.byte "-more-"
 
 .proc _PrintMessage
 	lda	MessageCursor
 	clc
 	adc	MessageSize
-	cmp	#SCREENW - _more_.size
+	cmp	#SCREENW - _more.size
 	bcc	!+
-	Copy	_more, SCREENADDR + SCREENW - _more_.size, _more_.size
+	Copy	_more, SCREENADDR + SCREENW - _more.size, _more.size
 	GetKey
 	jsr	ClearMessage
 !:	ldx	#0
