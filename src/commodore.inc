@@ -54,28 +54,6 @@ End:
 	jsr	$BDCD
 .endmacro
 
-; Prints a char at a given screen position
-; X, Y: screen relative coordinates, A: character to print
-.macro	PrintCXY	char
-	mov	RowsLo, y : pos
-	mov	RowsHi, y : pos+1
-	lda	#char
-	sta	pos:SCREENADDR, x
-.endmacro
-
-.macro	PrintAXY
-	sta	char
-	mov	RowsLo, y : pos
-	mov	RowsHi, y : pos+1
-	lda	char:#0
-	sta	pos:SCREENADDR, x
-.endmacro
-
-RowsLo:
-.for(var i = SCREENH - 1 ; i != 0 ; i--) .byte <(SCREENADDR + i * SCREENW)
-RowsHi:
-.for(var i = SCREENH - 1 ; i != 0 ; i--) .byte >(SCREENADDR + i * SCREENW)
-
 ; Returns key in A
 .macro	GetKey
 Wait:	jsr	GETIN
