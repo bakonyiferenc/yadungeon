@@ -705,6 +705,7 @@ NotFound:
 
 ; A simple parametric room
 .macro	RenderRoom xsize, ysize, chance
+	.local	End
 	txa
 	and	#-xsize	; block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
 	HashA
@@ -790,6 +791,7 @@ IllegalCommand:
 	rts
 
 .macro	MovePlayerBy	x, y
+	.local	Wall, Floor
 	ldx	PlayerX
 	ldy	PlayerY
 .if (x == -1)	dex
@@ -914,6 +916,7 @@ CommandTable:
 
 ; Prints a constant string to the message bar with -more- if needed
 .macro	PrintMessage	string
+	.local	Text, End
 	mov16	#Text, Message
 	mov	#End - Text, MessageSize
 	

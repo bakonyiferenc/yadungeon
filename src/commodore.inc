@@ -18,6 +18,7 @@ GETIN	=	$ffe4
 
 ; Prints a constant string
 .macro	Print	string
+        .local  Loop, Output, End
 	ldy	#0
 Loop:	lda	Output,y
 	beq	End
@@ -55,6 +56,7 @@ End:
 
 ; Returns key in A
 .macro	GetKey
+        .local  Wait
 Wait:	jsr	GETIN
 	cmp	#0
 	beq	Wait
@@ -62,6 +64,7 @@ Wait:	jsr	GETIN
 
 ; Fill "len" bytes of memory starting from "addr" with "byte". If "len" is 0 then fill 256 bytes.
 .macro	Fill	addr, byte, len
+        .local  Loop
 	ldx	#len - 1
 	lda	#byte
 Loop:	sta	addr, x
@@ -72,6 +75,7 @@ Loop:	sta	addr, x
 
 ; Copy "len" bytes of memory starting from "src" to "dst". If "len" is 0 then copy 256 bytes.
 .macro	Copy	src, dst, len
+        .local  Loop
 	ldx	#len - 1
 Loop:	mov	{src, x}, {dst, x}
 	dex
@@ -136,6 +140,7 @@ Loop:	mov	{src, x}, {dst, x}
 .endmacro
 
 .macro  add16   immediate, dest
+        .local  skip
 	clc
 	lda	dest
 	adc	immediate
@@ -153,6 +158,7 @@ skip:
 .endmacro
 
 .macro  inc16   arg
+        .local  over
 	inc	arg
 	bne	over
 	inc	arg+1
@@ -161,6 +167,7 @@ over:
 
 
 .macro  inc24   arg
+        .local  over
 	inc16	arg
 	bne	over
 	inc	arg+2
