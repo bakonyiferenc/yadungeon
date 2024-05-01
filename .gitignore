@@ -1,0 +1,6 @@
+obj/
+*.bin
+*.c64
+*.c128
+*.cx16
+.vscode/
