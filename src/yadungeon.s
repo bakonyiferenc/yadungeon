@@ -10,7 +10,10 @@
 	.include "cx16.inc"
 .endif
 
-BasicUpstart2(Start)
+.segment "STARTUP"
+.segment "INIT"
+.segment "ONCE"
+.segment "CODE"
 .encoding "petscii_mixed"	; Default encoding
 
 ;----------------------------------------------------------
