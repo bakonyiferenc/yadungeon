@@ -21,13 +21,13 @@
 ;
 ;----------------------------------------------------------
 
-Start:	Init()
+Start:	Init
 MainLoop:			; <- self modifying
-	QuickStats()
-;	DrawScene()
-	PlayersTurn()
-	MonstersTurn()
-	IsPlayerAlive()
+	QuickStats
+;	DrawScene
+	PlayersTurn
+	MonstersTurn
+	IsPlayerAlive
 	inc24	Turn
 	jmp	MainLoop
 
@@ -37,14 +37,14 @@ MainLoop:			; <- self modifying
 ;
 ;----------------------------------------------------------
 
-.macro	Init() {
+.macro	Init {
 	lda	#BLACK
 	;sta	$d020
 	;sta	$d021
 	Print(@"\$0e\$9b\$93Welcome to YAD!\nPress any key!\n")	; Lowercase, lightgray on black, clear screen
-	GetKey()
+	GetKey
 	PrintC($93)		; clr
-	NewGame()
+	NewGame
 }
 
 ;----------------------------------------------------------
@@ -53,9 +53,9 @@ MainLoop:			; <- self modifying
 ;
 ;----------------------------------------------------------
 
-.macro	NewGame() {
-	InitRnd()
-	InitHash()
+.macro	NewGame {
+	InitRnd
+	InitHash
 
 	ldx	#0
 Loop:	lda	#0
@@ -74,7 +74,7 @@ Loop:	lda	#0
 	mov	#100 : PlayerHP	; Dummy character creation
 	mov	#1 : PlayerZ	; Start from City1
 	
-	EnterDungeon()
+	EnterDungeon
 }
 
 ;----------------------------------------------------------
@@ -83,10 +83,10 @@ Loop:	lda	#0
 ;
 ;----------------------------------------------------------
 
-.macro	PlayersTurn() {
-Loop:	GetKey()
+.macro	PlayersTurn {
+Loop:	GetKey
 	sta	ZP_FREE3
-	ClearMessage()
+	ClearMessage
 	lda	ZP_FREE3
 	jsr	ProcessCommand
 	bcc	Loop		; Loop until a turn has passed
@@ -98,7 +98,7 @@ Loop:	GetKey()
 ;
 ;----------------------------------------------------------
 
-.macro	MonstersTurn() {
+.macro	MonstersTurn {
 	rnd
 	and	#7
 	bne	End
@@ -113,11 +113,11 @@ End:
 ;
 ;----------------------------------------------------------
 
-.macro	IsPlayerAlive() {
+.macro	IsPlayerAlive {
 	lda	PlayerHP
 	bne	Alive
 Dead:	PrintMessage("You died!")
-	QuitGame()
+	QuitGame
 Alive:
 }
 
@@ -127,7 +127,7 @@ Alive:
 ;
 ;----------------------------------------------------------
 
-.macro	QuitGame() {
+.macro	QuitGame {
 	mov	#RTS : MainLoop
 }
 
@@ -137,7 +137,7 @@ Alive:
 ;
 ;----------------------------------------------------------
 
-.macro	QuickStats() {
+.macro	QuickStats {
 	PrintC($13)		; home
 	PrintC($11)		; down
 	ldx	PlayerZ
@@ -154,36 +154,36 @@ Wilderness:
 	Print(@"Wilderness\n")
 
 Details:
-	PrintX()
+	PrintX
 
 	Print(@"\nSize:\n")
 	ldx	DungeonW
-	PrintX()
+	PrintX
 	PrintC('x')
 	ldx	DungeonH
-	PrintX()
+	PrintX
 
 	Print(@" \nOffset:\n")
 	ldx	OffsetX
-	PrintX()
+	PrintX
 	PrintC('x')
 	ldx	OffsetY
-	PrintX()
+	PrintX
 	Print(@"  \n")
 
 	PrintC('@')
 	Print(@"\nx: ")
 	lda	PlayerX
-	PrintA()
+	PrintA
 	Print(@" \ny: ")
 	lda	PlayerY
-	PrintA()
+	PrintA
 	Print(@" \nz: ")
 	lda	PlayerZ
-	PrintA()
+	PrintA
 	Print(@" \nHP: ")
 	lda	PlayerHP
-	PrintA()
+	PrintA
 
 	Print(@" \nturn: ")
 	PrintN16(Turn)
@@ -196,7 +196,7 @@ Details:
 ;----------------------------------------------------------
 
 ; Draws the visible part of scene.
-.macro	DrawVisibleScene() {
+.macro	DrawVisibleScene {
 	jsr	_DrawVisibleScene
 }
 
@@ -204,47 +204,47 @@ _DrawVisibleScene:
 	ldx	PlayerX
 	ldy	PlayerY
 	iny
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	ldx	PlayerX
 	ldy	PlayerY
 	dey
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	ldx	PlayerX
 	inx
 	ldy	PlayerY
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	ldx	PlayerX
 	dex
 	ldy	PlayerY
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	ldx	PlayerX
 	inx
 	ldy	PlayerY
 	iny
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	ldx	PlayerX
 	inx
 	ldy	PlayerY
 	dey
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	ldx	PlayerX
 	dex
 	ldy	PlayerY
 	dey
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	ldx	PlayerX
 	dex
 	ldy	PlayerY
 	iny
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	rts
 
 ;----------------------------------------------------------
@@ -254,7 +254,7 @@ _DrawVisibleScene:
 ;
 ;----------------------------------------------------------
 
-.macro	OffsetUpdated() {
+.macro	OffsetUpdated {
 	sub OffsetX : #<(SCREENADDR + SCENEOFFSET) : _screenLo
 	lda	#>(SCREENADDR + SCENEOFFSET)
 	sbc	#0
@@ -274,7 +274,7 @@ _DrawVisibleScene:
 ;
 ;----------------------------------------------------------
 
-.macro	AdjustOffset() {
+.macro	AdjustOffset {
 	jsr	_AdjustOffset
 }
 
@@ -498,7 +498,7 @@ ScrollUp6:
 }
 
 Scrolled:
-	OffsetUpdated()
+	OffsetUpdated
 	rts
 
 ;----------------------------------------------------------
@@ -507,7 +507,7 @@ Scrolled:
 ;
 ;----------------------------------------------------------
 
-.macro	DrawScene() {
+.macro	DrawScene {
 	mov	#JSR_ABS : _tile
 	mov16 #_RenderTile : _tile+1
 	jsr	_DrawScene
@@ -519,7 +519,7 @@ Scrolled:
 ;
 ;----------------------------------------------------------
 
-.macro	ClearScene() {
+.macro	ClearScene {
 	mov	#NOP : _tile
 	mov	#LDA_IMM : _tile+1
 	mov	#' ' : 	_tile+2
@@ -536,7 +536,7 @@ _DrawScene:
 y:	dey
 	ldx	_x:#0
 x:	dex
-_tile:	RenderTile()
+_tile:	RenderTile
 	sta	screen:SCREENADDR, x
 	cpx	_ox:#0
 	bne	x
@@ -554,7 +554,7 @@ _tile:	RenderTile()
 ;
 ;----------------------------------------------------------
 
-.macro SpawnMonster() {
+.macro SpawnMonster {
 	jsr	_SpawnMonster
 }
 
@@ -593,7 +593,7 @@ Y = ZP_FREE1
 ;
 ;----------------------------------------------------------
 
-.macro KillMonster() {
+.macro KillMonster {
 	mov	#0 : MonsterHP, x	; 0 HP == dead
 	mov	#0 : MonsterState1, x
 	sta	MonsterState2, x
@@ -601,8 +601,8 @@ Y = ZP_FREE1
 	tay
 	lda	MonsterX, x
 	tax
-	RenderTile()
-	PrintDungeonTile()
+	RenderTile
+	PrintDungeonTile
 	PrintMessage("It dies.")
 }
 
@@ -615,7 +615,7 @@ Y = ZP_FREE1
 ;
 ;----------------------------------------------------------
 
-.macro	RenderTile() {
+.macro	RenderTile {
 	jsr	_RenderTile
 
 	cmp	#'.'
@@ -626,7 +626,7 @@ Y = ZP_FREE1
 	lda	MonsterCnt
 	cmp	#20		; Max nr of monsters per dungeon
 	bcs	NotSpawn
-	SpawnMonster()
+	SpawnMonster
 	jmp	End
 NotSpawn:
 	lda	ZP_FREE3
@@ -634,8 +634,8 @@ End:
 }
 
 _RenderTile:
-	RenderBorder()
-	RenderMonster()
+	RenderBorder
+	RenderMonster
 
 	cpx	#40		; Test tunnels
 	bne	!+
@@ -655,7 +655,7 @@ _RenderTile:
 	rts
 
 ; Impenetrable border around each landscape/dungeon
-.macro	RenderBorder() {
+.macro	RenderBorder {
 	txa
 	beq	Border
 	cmp	DungeonMaxX
@@ -670,7 +670,7 @@ End:
 }
 
 ; Find an existing monster here
-.macro RenderMonster() {
+.macro RenderMonster {
 X = 	ZP_FREE0
 Y = 	ZP_FREE1
 
@@ -711,7 +711,7 @@ NotFound:
 .macro	RenderRoom(xsize, ysize, chance) {
 	txa
 	and	#-xsize	; block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
-	HashA()
+	HashA
 	sta	xc
 
 	tya
@@ -800,7 +800,7 @@ IllegalCommand:
 .if (x ==  1)	inx
 .if (y == -1)	dey
 .if (y ==  1)	iny
-	RenderTile()
+	RenderTile
 	cmp	#'.'
 	beq	Floor
 	cmp	#'#'
@@ -809,7 +809,7 @@ IllegalCommand:
 	beq	Wall
 	jmp	_Something
 Wall:	jmp	_Wall
-Floor:	HidePlayer()
+Floor:	HidePlayer
 .if (x == -1)	dec	PlayerX
 .if (x ==  1)	inc	PlayerX
 .if (y == -1)	dec	PlayerY
@@ -818,9 +818,9 @@ Floor:	HidePlayer()
 }
 
 _MovePlayerBy:
-	AdjustOffset()
-	DrawVisibleScene()
-	PrintPlayer()
+	AdjustOffset
+	DrawVisibleScene
+	PrintPlayer
 	sec
 	rts
 
@@ -831,7 +831,7 @@ _Wall:	PrintMessage("There is a wall in the way!")
 _Something:
 	PrintMessage("You hit something!")
 	ldx	LastMonsterIdx
-	KillMonster()
+	KillMonster
 	sec
 	rts
 
@@ -863,14 +863,14 @@ Command_a:
 
 Command_l:
 	PrintMessage("Look around")
-	DrawScene()
-	PrintPlayer()
+	DrawScene
+	PrintPlayer
 	clc
 	rts
 
 Command_q:	
 	PrintMessage("Quitting")
-	QuitGame()
+	QuitGame
 	sec
 	rts
 
@@ -887,13 +887,13 @@ Command_z:
 
 Command_upstairs:
 	dec	PlayerZ
-	EnterDungeon()
+	EnterDungeon
 	sec
 	rts
 
 Command_downstairs:
 	inc	PlayerZ
-	EnterDungeon()
+	EnterDungeon
 	sec
 	rts
 
@@ -940,11 +940,11 @@ _PrintMessage:
 	lda	MessageCursor
 	clc
 	adc	MessageSize
-	cmp	#SCREENW - _more_.size()
+	cmp	#SCREENW - _more_.size
 	bcc	!+
-	Copy(_more, SCREENADDR + SCREENW - _more_.size(), _more_.size())
-	GetKey()
-	ClearMessage()
+	Copy(_more, SCREENADDR + SCREENW - _more_.size, _more_.size)
+	GetKey
+	ClearMessage
 !:	ldx	#0
 !:	lda	Message:$beef, x
 	sta	MessageCursor:SCREENADDR
@@ -956,14 +956,14 @@ _PrintMessage:
 	lda	MessageCursor
 	rts
 
-.macro	ClearMessage() {
+.macro	ClearMessage {
 	Fill(SCREENADDR, ' ', SCREENW)
 	mov	#0 : MessageCursor
 }
 
 ; Prints a char at given scene coordinates
 ; X, Y: scene relative coordinates, A: character to print
-.macro	PrintSceneTile() {
+.macro	PrintSceneTile {
 	sta	char
 	mov	SceneLo, y : pos
 	mov	SceneHi, y : pos+1
@@ -973,7 +973,7 @@ _PrintMessage:
 
 ; Prints a char at a given dungeon position
 ; X, Y: dungeon relative coordinates, A: character to print
-.macro	PrintDungeonTile() {
+.macro	PrintDungeonTile {
 	jsr	_PrintDungeonTile
 }
 
@@ -995,22 +995,22 @@ _PrintDungeonTile: {
 }
 
 ; Replaces Player with underlying tile on screen
-.macro	HidePlayer() {
+.macro	HidePlayer {
 	;ldx	PlayerX
 	;ldy	PlayerY
-	;RenderTile()
+	;RenderTile
 	lda	#'.'
 	ldx	PlayerX
 	ldy	PlayerY
-	PrintDungeonTile()
+	PrintDungeonTile
 }
 
 ; Makes Player visible
-.macro	PrintPlayer() {
+.macro	PrintPlayer {
 	ldx	PlayerX
 	ldy	PlayerY
 	lda	#00		; '@'
-	PrintDungeonTile()
+	PrintDungeonTile
 }
 
 SceneLo:
@@ -1024,7 +1024,7 @@ SceneHi:
 ;
 ;----------------------------------------------------------
 
-.macro	EnterDungeon() {
+.macro	EnterDungeon {
 	jsr	_EnterDungeon
 }
 
@@ -1035,7 +1035,7 @@ _EnterDungeon: {
 	lda	#2
 	sta	OffsetX
 	sta	OffsetY
-	OffsetUpdated()
+	OffsetUpdated
 
 	lda	PlayerZ
 	bne	Regular		; Wilderness has a fixed size
@@ -1047,7 +1047,7 @@ _EnterDungeon: {
 	sta	DungeonMaxY
 	jmp	Monsters
 Regular:			; Calculate regular dungeon size
-	HashA()
+	HashA
 	tay
 	and	PlayerZ
 	ora	#20
@@ -1080,22 +1080,22 @@ NotHere:
 	bne	Loop
 	sty	MonsterCnt
 
-	lda	DungeonW	; For AdjustOffset()
+	lda	DungeonW	; For AdjustOffset
 	sec
 	sbc	#SCENEW
 	sta	ox1
 	sta	ox2
 	sta	ox3
-	lda	DungeonH	; For AdjustOffset()
+	lda	DungeonH	; For AdjustOffset
 	sec
 	sbc	#SCENEH
 	sta	oy1
 	sta	oy2
 	sta	oy3
 	
-	ClearScene()
-	DrawVisibleScene()
-	PrintPlayer()
+	ClearScene
+	DrawVisibleScene
+	PrintPlayer
 	rts
 }
 
@@ -1125,15 +1125,15 @@ End:
 }
 
 ; Prints the decimal value of X
-.macro	PrintX() {
+.macro	PrintX {
 	lda	#0
 	jsr	$BDCD
 }
 
 ; Prints the decimal value of A
-.macro	PrintA() {
+.macro	PrintA {
 	tax
-	PrintX()
+	PrintX
 }
 
 ; Prints a 16 bit decimal value
@@ -1151,7 +1151,7 @@ End:
 	lda	#char
 	sta	pos:SCREENADDR, x
 }
-.macro	PrintAXY() {
+.macro	PrintAXY {
 	sta	char
 	mov	RowsLo, y : pos
 	mov	RowsHi, y : pos+1
@@ -1165,7 +1165,7 @@ RowsHi:
 .for(var i = SCREENH - 1 ; i != 0 ; i--) .byte >(SCREENADDR + i * SCREENW)
 
 ; Returns key in A
-.macro	GetKey() {
+.macro	GetKey {
 Wait:	jsr	GETIN
 	cmp	#0
 	beq	Wait
@@ -1196,9 +1196,9 @@ Loop:	mov	src, x : dst, x
 }
 
 .function _16bitnextArgument(arg) {
-	.if (arg.getType() == AT_IMMEDIATE) 
-		.return CmdArgument(arg.getType(), >arg.getValue())
-	.return CmdArgument(arg.getType(), arg.getValue()+1)
+	.if (arg.getType == AT_IMMEDIATE) 
+		.return CmdArgument(arg.getType, >arg.getValue)
+	.return CmdArgument(arg.getType, arg.getValue+1)
 }
 
 .pseudocommand mov16 src:tar {
@@ -1209,19 +1209,19 @@ Loop:	mov	src, x : dst, x
 }
 
 .pseudocommand mov24 src:tar {
-	.if (src.getType() == AT_IMMEDIATE) {
+	.if (src.getType == AT_IMMEDIATE) {
 		lda	src
 		sta	tar
 		lda #0
-		sta tar.getValue()+1
-		sta tar.getValue()+2
+		sta tar.getValue+1
+		sta tar.getValue+2
 	} else {
 		.error("Not implemented!")
 	}
 }
 
 .pseudocommand add arg1 : arg2 : tar {
-	.if (tar.getType() == AT_NONE) .eval tar=arg1
+	.if (tar.getType == AT_NONE) .eval tar=arg1
 	lda arg2
 	clc
 	adc arg1
@@ -1229,14 +1229,14 @@ Loop:	mov	src, x : dst, x
 }
 
 .pseudocommand add16 arg1 : arg2 : tar {
-	.if (tar.getType() == AT_NONE) .eval tar=arg1
+	.if (tar.getType == AT_NONE) .eval tar=arg1
 	clc
 	lda	arg1
 	adc	arg2
 	sta	tar
-	.if (arg2.getType() == AT_IMMEDIATE && (>arg2.getValue()) == 0) {
+	.if (arg2.getType == AT_IMMEDIATE && (>arg2.getValue) == 0) {
 		bcc skip
-		inc tar.getValue()+1
+		inc tar.getValue+1
 	skip:
 	} else {
 	lda	_16bitnextArgument(arg1)
@@ -1246,7 +1246,7 @@ Loop:	mov	src, x : dst, x
 }
 
 .pseudocommand sub arg1 : arg2 : tar {
-	.if (tar.getType() == AT_NONE) .eval tar=arg1
+	.if (tar.getType == AT_NONE) .eval tar=arg1
 	lda arg2
 	sec
 	sbc arg1
@@ -1254,14 +1254,14 @@ Loop:	mov	src, x : dst, x
 }
 
 .pseudocommand sub16 arg1 : arg2 : tar {
-	.if (tar.getType() == AT_NONE) .eval tar=arg1
+	.if (tar.getType == AT_NONE) .eval tar=arg1
 	sec
 	lda	arg1
 	sbc	arg2
 	sta	tar
-	.if (arg2.getType() == AT_IMMEDIATE && (>arg2.getValue()) == 0) {
+	.if (arg2.getType == AT_IMMEDIATE && (>arg2.getValue) == 0) {
 		bcs skip
-		dec tar.getValue()+1
+		dec tar.getValue+1
 	skip:
 	} else {
 	lda	_16bitnextArgument(arg1)
@@ -1273,14 +1273,14 @@ Loop:	mov	src, x : dst, x
 .pseudocommand inc16 arg {
 	inc	arg
 	bne	over
-	inc	arg.getValue() + 1
+	inc	arg.getValue + 1
 over:
 }
 
 .pseudocommand inc24 arg {
 	inc16	arg
 	bne	over
-	inc	arg.getValue() + 2
+	inc	arg.getValue + 2
 over:
 }
 
@@ -1296,7 +1296,7 @@ over:
 	sbc	$dc05
 }
 
-.macro	InitRnd() {
+.macro	InitRnd {
 	rnd
 	sta	Seed
 	rnd
@@ -1310,7 +1310,7 @@ Loop:	rnd
 	bne	Loop
 }
 
-.macro	InitHash() {
+.macro	InitHash {
 	ldx	#0
 	rnd
 Loop:	cmp	#0
@@ -1326,27 +1326,27 @@ noEor:	sta	Hash, x
 	bne	Loop
 }
 
-.macro	HashA() {
+.macro	HashA {
 	sta	vector
 	lda	vector:Hash
 }
 
 .macro	HashM(addr) {
 	lda	addr
-	HashA()
+	HashA
 }
 
 .macro	HashAwithM(addr) {
-	HashA()
+	HashA
 	eor	addr
-	HashA()
+	HashA
 }
 
-.macro	HashAwithX() {
+.macro	HashAwithX {
 	eor	Hash,x
 }
 
-.macro	HashAwithY() {
+.macro	HashAwithY {
 	eor	Hash,y
 }
 
