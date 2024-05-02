@@ -1146,15 +1146,15 @@ NotHere:
 	lda	DungeonW	; For AdjustOffset
 	sec
 	sbc	#SCENEW
-	SMC_StoreValue	ox1
-	SMC_StoreValue	ox2
-	SMC_StoreValue	ox3
+	SMC_StoreValue	AdjustOffset::ox1
+	SMC_StoreValue	AdjustOffset::ox2
+	SMC_StoreValue	AdjustOffset::ox3
 	lda	DungeonH	; For AdjustOffset
 	sec
 	sbc	#SCENEH
-	SMC_StoreValue	oy1
-	SMC_StoreValue	oy2
-	SMC_StoreValue	oy3
+	SMC_StoreValue	AdjustOffset::oy1
+	SMC_StoreValue	AdjustOffset::oy2
+	SMC_StoreValue	AdjustOffset::oy3
 	
 	jsr	ClearScene
 	jsr	DrawVisibleScene
