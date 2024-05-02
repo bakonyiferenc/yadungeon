@@ -38,8 +38,9 @@ End:
 ;----------------------------------------------------------
 
 .macro	HashA
-	sta	vector
-	lda	vector:Hash
+	.local	vector
+	sta	vector+1
+vector:	lda	Hash
 .endmacro
 
 .macro	HashM	addr
@@ -558,19 +559,26 @@ Scrolled:
 
 .proc _DrawScene
 SMC _screenLo, { lda #SMC_Value }
-	sta	screen
+	SMC_StoreLowByte	screen
 SMC _screenHi, { lda #SMC_Value }
-	sta	screen+1
+	SMC_StoreHighByte	screen
 
 SMC _y, { ldy #SMC_Value }
 yloop:	dey
 SMC _x, { ldx #SMC_Value }
 xloop:	dex
 _tile:	jsr	RenderTile
-	sta	screen:SCREENADDR, x
+SMC screen, { sta SMC_AbsAdr, x }
 SMC _ox, { cpx #SMC_Value }
 	bne	xloop
-	add16	#SCREENW, screen
+	; add16
+	clc
+	SMC_LoadLowByte	screen
+	adc	#SCREENW
+	SMC_StoreLowByte	screen
+	bcc	:+
+	SMC_OperateOnHighByte inc, screen
+:
 SMC _oy, { cpy #SMC_Value }
 	bne	yloop
 	rts
@@ -684,33 +692,33 @@ End:	rts
 
 ; A simple parametric room
 .macro	RenderRoom xsize, ysize, chance
-	.local	End
+	.local	xc, yoffs, cmpx, cmpy, End
 	txa
 	and	#-xsize	; block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
 	HashA
-	SMC_StoreValue	xc
+	sta	xc+1
 
 	tya
 	and	#-ysize	; block size Y: $f0 = 16, $f8 = 8, $fc = 4, etc
-SMC xc, { eor #SMC_Value }
+xc:	eor	#SMC_Value
 	HashAwithM	PlayerZ
 
 	cmp	#256 * chance	; block chance: $40:$100 = 1:4
 	bcs	End
 
-	sta	yoffs
+	sta	yoffs+1
 	and	#xsize/2 - 1
-	SMC_StoreValue	cmpx
+	sta	cmpx+1
 	txa
 	and	#xsize - 1
-SMC cmpx, { cmp #SMC_Value }
+cmpx:	cmp	#SMC_Value
 	bcc	End
-	lda	yoffs:Rnd1
+yoffs:	lda	Rnd1
 	and	#ysize/2 - 1
-	SMC_StoreValue	cmpy
+	sta	cmpy+1
 	tya
 	and	#ysize - 1
-SMC cmpy, { cmp #SMC_Value }
+cmpy:	cmp	#SMC_Value
 	bcc	End
 	lda	#'.'		; Floor
 	rts
@@ -827,8 +835,8 @@ ProcessCommand:
 	bcc	IllegalCommand
 
 	asl
-	sta	Lookup
-	jmp	Lookup:(CommandTable)
+	SMC_StoreLowByte	Lookup
+SMC Lookup, { jmp (CommandTable) }
 
 ;----------------------------------------------------------
 ;
