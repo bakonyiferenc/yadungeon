@@ -10,6 +10,8 @@
 	.include "cx16.inc"
 .endif
 
+.include	"smc.inc"
+
 ;----------------------------------------------------------
 ;
 ;	Game UI specific macros
@@ -41,7 +43,7 @@ End:
 .segment "CODE"
 
 Start:	jsr	Init
-MainLoop:			; <- self modifying
+SMC MainLoop, nop
 	jsr	QuickStats
 ;	jsr	DrawScene
 	jsr	PlayersTurn
@@ -269,27 +271,6 @@ Details:
 
 ;----------------------------------------------------------
 ;
-; Updates aux variables. 
-; Must be called when Offset{XY} was changed.
-;
-;----------------------------------------------------------
-
-.proc	OffsetUpdated
-	sub	OffsetX, #<(SCREENADDR + SCENEOFFSET), _screenLo
-	lda	#>(SCREENADDR + SCENEOFFSET)
-	sbc	#0
-	sta	_screenHi
-
-	add	OffsetX, #SCENEW, _x
-	add	OffsetY, #SCENEH, _y
-
-	mov	OffsetX, _ox
-	mov	OffsetY, _oy
-	rts
-.endproc
-
-;----------------------------------------------------------
-;
 ; Scrolls the scene when needed.
 ; Must be called when Player{XY} was changed.
 ;
@@ -315,13 +296,13 @@ AdjEnd:	rts
 
 AdjRight:
 	lda	OffsetX
-	cmp	ox1:#0
+SMC ox1, { cmp #SMC_Value }
 	beq	AdjY		; already at the far end, skip scroll
 	clc
 	adc	#SCENEW * 1 / 4
-	cmp	ox2:#0
+SMC ox2, { cmp #SMC_Value }
 	bcc	!+
-	lda	ox3:#0
+SMC ox3, { lda #SMC_Value }
 !:	jmp	ScrollLeft	; What about double change (Y)?
 
 AdjLeft:
@@ -335,13 +316,13 @@ AdjLeft:
 
 AdjUp:
 	lda	OffsetY
-	cmp	oy1:#0
+SMC oy1, { cmp #SMC_Value }
 	beq	AdjEnd		; already at the far end, skip scroll
 	clc
 	adc	#SCENEH * 1 / 4
-	cmp	oy2:#0
+SMC oy2, { cmp #SMC_Value }
 	bcc	!+
-	lda	oy3:#0
+SMC oy3, { lda #SMC_Value }
 !:	jmp	ScrollDown	; What about double change (Y)?
 
 AdjDown:
@@ -356,9 +337,9 @@ AdjDown:
 .proc ScrollRight
 	ldx	OffsetX		; X: old OffsetX
 	sta	OffsetX		; A: new OffsetX
-	stx	x
+	SMC_StoreValue	ox, x
 	sec
-	sbc	x:#0
+SMC ox, { sbc #SMC_Value }
 	clc
 	adc	#SCENEW - 1
 	tax			; SCENEW - (X - A) - 1
@@ -386,9 +367,9 @@ End:	jmp	Scrolled
 .proc ScrollLeft
 	ldx	OffsetX		; X: old OffsetX
 	sta	OffsetX		; A: new OffsetX
-	stx	x
+	SMC_StoreValue	ox, x
 	sec
-	sbc	x:#0
+SMC ox, { sbc #SMC_Value }
 	clc
 	adc	#-SCENEW
 	tax			; -SCENEW + (A - X)
@@ -443,18 +424,19 @@ End:	jmp	Scrolled
 	ldy	OffsetY		; Y: old OffsetY
 	sta	OffsetY		; A: new OffsetY
 	iny
-	sty	y
+	SMC_StoreValue	oy, y
 	sec
-	sbc	y:#0
+SMC oy, { sbc #SMC_Value }
 	asl
 	clc
 	adc	#<ScrollDownTable
-	sta	Scroll
+	SMC_StoreLowByte	Scroll
 	lda	#0
 	adc	#>ScrollDownTable
-	sta	Scroll+1
+	SMC_StoreHighByte	Scroll
 	ldx	#SCENEW
-Loop:	jmp	Scroll:($beef)
+Loop:
+SMC Scroll, { jmp (SMC_AbsAdr) }
 Next:	dex
 	beq	Done
 	jmp	Loop
@@ -479,20 +461,21 @@ ScrollDown6:
 .proc ScrollUp
 	ldy	OffsetY		; Y: old OffsetY
 	sta	OffsetY		; A: new OffsetY
-	sta	a
+	SMC_StoreValue	oy
 	dey
 	tya
 	sec
-	sbc	a:#0
+SMC oy, { sbc #SMC_Value }
 	asl
 	clc
 	adc	#<ScrollUpTable
-	sta	Scroll
+	SMC_StoreLowByte	Scroll
 	lda	#0
 	adc	#>ScrollUpTable
-	sta	Scroll+1
+	SMC_StoreHighByte	Scroll
 	ldx	#SCENEW
-Loop:	jmp	Scroll:($beef)
+Loop:
+SMC Scroll, { jmp (SMC_AbsAdr) }
 Next:	dex
 	beq	Done
 	jmp	Loop
@@ -544,22 +527,43 @@ Scrolled:
 .endproc
 
 .proc _DrawScene
-	lda	_screenLo:#0
+SMC _screenLo, { lda #SMC_Value }
 	sta	screen
-	lda	_screenHi:#0
+SMC _screenHi, { lda #SMC_Value }
 	sta	screen+1
 
-	ldy	_y:#0
+SMC _y, { ldy #SMC_Value }
 y:	dey
-	ldx	_x:#0
+SMC _x, { ldx #SMC_Value }
 x:	dex
 _tile:	jsr	RenderTile
 	sta	screen:SCREENADDR, x
-	cpx	_ox:#0
+SMC _ox, { cpx #SMC_Value }
 	bne	x
 	add16	#SCREENW, screen
-	cpy	_oy:#0
+SMC _oy, { cpy #SMC_Value }
 	bne	y
+	rts
+.endproc
+
+;----------------------------------------------------------
+;
+; Updates aux variables. 
+; Must be called when Offset{XY} was changed.
+;
+;----------------------------------------------------------
+
+.proc	OffsetUpdated
+	sub	OffsetX, #<(SCREENADDR + SCENEOFFSET), _DrawScene::_screenLo
+	lda	#>(SCREENADDR + SCENEOFFSET)
+	sbc	#0
+	SMC_StoreValue	_DrawScene::_screenHi
+
+	add	OffsetX, #SCENEW, _DrawScene::_x
+	add	OffsetY, #SCENEH, _DrawScene::_y
+
+	mov	OffsetX, _DrawScene::_ox
+	mov	OffsetY, _DrawScene::_oy
 	rts
 .endproc
 
@@ -654,11 +658,11 @@ End:	rts
 	txa
 	and	#-xsize	; block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
 	HashA
-	sta	xc
+	SMC_StoreValue	xc
 
 	tya
 	and	#-ysize	; block size Y: $f0 = 16, $f8 = 8, $fc = 4, etc
-	eor	xc:#0
+SMC xc, { eor #SMC_Value }
 	HashAwithM	PlayerZ
 
 	cmp	#256 * chance	; block chance: $40:$100 = 1:4
@@ -666,17 +670,17 @@ End:	rts
 
 	sta	yoffs
 	and	#xsize/2 - 1
-	sta	cmpx
+	SMC_StoreValue	cmpx
 	txa
 	and	#xsize - 1
-	cmp	cmpx:#0
+SMC cmpx, { cmp #SMC_Value }
 	bcc	End
 	lda	yoffs:Rnd1
 	and	#ysize/2 - 1
-	sta	cmpy
+	SMC_StoreValue	cmpy
 	tya
 	and	#ysize - 1
-	cmp	cmpy:#0
+SMC cmpy, { cmp #SMC_Value }
 	bcc	End
 	lda	#'.'		; Floor
 	rts
@@ -938,7 +942,7 @@ _more:	.byte "-more-"
 .proc _PrintMessage
 	lda	MessageCursor
 	clc
-	adc	MessageSize
+	SMC_OperateOnValue	adc, MessageSize
 	cmp	#SCREENW - _more.size
 	bcc	!+
 	Copy	_more, SCREENADDR + SCREENW - _more.size, _more.size
@@ -949,7 +953,7 @@ _more:	.byte "-more-"
 	sta	MessageCursor:SCREENADDR
 	inc	MessageCursor
 	inx
-	cpx	MessageSize:#0
+SMC MessageSize, { cpx #SMC_Value }
 	bne	!-
 	inc	MessageCursor
 	lda	MessageCursor
@@ -965,10 +969,10 @@ _more:	.byte "-more-"
 ; Prints a char at given scene coordinates
 ; X, Y: scene relative coordinates, A: character to print
 .proc	PrintSceneTile
-	sta	char
+	SMC_StoreValue	char
 	mov	{SceneLo, y}, pos
 	mov	{SceneHi, y}, pos+1
-	lda	char:#0
+SMC char, { lda #SMC_Value }
 	sta	pos:SCREENADDR, x
 	rts
 .endproc
@@ -976,7 +980,7 @@ _more:	.byte "-more-"
 ; Prints a char at a given dungeon position
 ; X, Y: dungeon relative coordinates, A: character to print
 .proc	PrintDungeonTile
-	sta	char
+	SMC_StoreValue	char
 	txa
 	sec
 	sbc	OffsetX
@@ -987,7 +991,7 @@ _more:	.byte "-more-"
 	tay
 	mov	{SceneLo, y}, pos
 	mov	{SceneHi, y}, pos+1
-	lda	char:#0
+SMC char, { lda #SMC_Value }
 	sta	pos:SCREENADDR, x
 	rts
 .endproc
@@ -1077,15 +1081,15 @@ NotHere:
 	lda	DungeonW	; For AdjustOffset
 	sec
 	sbc	#SCENEW
-	sta	ox1
-	sta	ox2
-	sta	ox3
+	SMC_StoreValue	ox1
+	SMC_StoreValue	ox2
+	SMC_StoreValue	ox3
 	lda	DungeonH	; For AdjustOffset
 	sec
 	sbc	#SCENEH
-	sta	oy1
-	sta	oy2
-	sta	oy3
+	SMC_StoreValue	oy1
+	SMC_StoreValue	oy2
+	SMC_StoreValue	oy3
 	
 	jsr	ClearScene
 	jsr	DrawVisibleScene
