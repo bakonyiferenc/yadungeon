@@ -301,18 +301,18 @@ SMC ox1, { cmp #SMC_Value }
 	clc
 	adc	#SCENEW * 1 / 4
 SMC ox2, { cmp #SMC_Value }
-	bcc	!+
+	bcc	:+
 SMC ox3, { lda #SMC_Value }
-!:	jmp	ScrollLeft	; What about double change (Y)?
+:	jmp	ScrollLeft	; What about double change (Y)?
 
 AdjLeft:
 	lda	OffsetX
 	beq	AdjY		; already at the far end, skip scroll
 	sec
 	sbc	#SCENEW * 1 / 4
-	bcs	!+
+	bcs	:+
 	lda	#0
-!:	jmp	ScrollRight	; What about double change (Y)?
+:	jmp	ScrollRight	; What about double change (Y)?
 
 AdjUp:
 	lda	OffsetY
@@ -321,18 +321,18 @@ SMC oy1, { cmp #SMC_Value }
 	clc
 	adc	#SCENEH * 1 / 4
 SMC oy2, { cmp #SMC_Value }
-	bcc	!+
+	bcc	:+
 SMC oy3, { lda #SMC_Value }
-!:	jmp	ScrollDown	; What about double change (Y)?
+:	jmp	ScrollDown	; What about double change (Y)?
 
 AdjDown:
 	lda	OffsetY
 	beq	AdjEnd		; already at the far end, skip scroll
 	sec
 	sbc	#SCENEH * 1 / 4
-	bcs	!+
+	bcs	:+
 	lda	#0
-!:	jmp	ScrollUp	; What about double change (Y)?
+:	jmp	ScrollUp	; What about double change (Y)?
 
 .proc ScrollRight
 	ldx	OffsetX		; X: old OffsetX
@@ -692,14 +692,14 @@ End:
 	jsr	RenderMonster
 
 	cpx	#40		; Test tunnels
-	bne	!+
+	bne	:+
 	lda	#'.'
 	rts
-!:	cpy	#10
-	bne	!+
+:	cpy	#10
+	bne	:+
 	lda	#'.'
 	rts
-!:
+:
 	RenderRoom	16, 16, 1/30
 	RenderRoom	8, 8, 1/16
 	RenderRoom	16, 1, 1/8
@@ -770,24 +770,24 @@ NotFound:
 
 ProcessCommand:
 	cmp	#$11	; cursor down
-	bne	!+
+	bne	:+
 	jmp	CommandDown
-!:	cmp	#$91	; cursor up
-	bne	!+
+:	cmp	#$91	; cursor up
+	bne	:+
 	jmp	CommandUp
-!:	cmp	#$1d	; cursor right
-	bne	!+
+:	cmp	#$1d	; cursor right
+	bne	:+
 	jmp	CommandRight
-!:	cmp	#$9d	; cursor left
-	bne	!+
+:	cmp	#$9d	; cursor left
+	bne	:+
 	jmp	CommandLeft
-!:	cmp	#'<'
-	bne	!+
+:	cmp	#'<'
+	bne	:+
 	jmp	Command_upstairs
-!:	cmp	#'>'
-	bne	!+
+:	cmp	#'>'
+	bne	:+
 	jmp	Command_downstairs
-!:
+:
 	tax
 	cmp	#'z'+1
 	bcs	IllegalCommand
@@ -944,17 +944,17 @@ _more:	.byte "-more-"
 	clc
 	SMC_OperateOnValue	adc, MessageSize
 	cmp	#SCREENW - _more.size
-	bcc	!+
+	bcc	:+
 	Copy	_more, SCREENADDR + SCREENW - _more.size, _more.size
 	GetKey
 	jsr	ClearMessage
-!:	ldx	#0
-!:	lda	Message:$beef, x
+:	ldx	#0
+:	lda	Message:$beef, x
 	sta	MessageCursor:SCREENADDR
 	inc	MessageCursor
 	inx
 SMC MessageSize, { cpx #SMC_Value }
-	bne	!-
+	bne	:-
 	inc	MessageCursor
 	lda	MessageCursor
 	rts
