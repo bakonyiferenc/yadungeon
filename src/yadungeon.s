@@ -13,6 +13,8 @@
 .include	"smc.inc"
 .include	"opcodes.inc"
 
+	jmp	Start
+
 ;----------------------------------------------------------
 ;
 ;	Game UI messages
@@ -105,6 +107,7 @@ vector:	lda	Hash
 .segment "CODE"
 
 Start:	jsr	Init
+MainLoop:
 SMC MainLoop, { jsr QuickStats }
 ;	jsr	DrawScene
 	jsr	PlayersTurn
