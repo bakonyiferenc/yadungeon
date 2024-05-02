@@ -10,16 +10,35 @@
 	.include "cx16.inc"
 .endif
 
-.segment "STARTUP"
-.segment "INIT"
-.segment "ONCE"
-.segment "CODE"
+;----------------------------------------------------------
+;
+;	Game UI specific macros
+;
+;----------------------------------------------------------
+
+; Prints a constant string to the message bar with -more- if needed
+.macro	PrintMessage	string
+	.local	Text, End
+	mov16	#Text, Message
+	mov	#End - Text, MessageSize
+
+	jsr	_PrintMessage
+	jmp	End
+Text:	.byte	string
+
+End:
+.endmacro
 
 ;----------------------------------------------------------
 ;
 ;	Yet Another Dungeon
 ;
 ;----------------------------------------------------------
+
+.segment "STARTUP"
+.segment "INIT"
+.segment "ONCE"
+.segment "CODE"
 
 Start:	jsr	Init
 MainLoop:			; <- self modifying
@@ -629,6 +648,41 @@ NotSpawn:
 End:	rts
 .endproc
 
+; A simple parametric room
+.macro	RenderRoom xsize, ysize, chance
+	.local	End
+	txa
+	and	#-xsize	; block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
+	HashA
+	sta	xc
+
+	tya
+	and	#-ysize	; block size Y: $f0 = 16, $f8 = 8, $fc = 4, etc
+	eor	xc:#0
+	HashAwithM	PlayerZ
+
+	cmp	#256 * chance	; block chance: $40:$100 = 1:4
+	bcs	End
+
+	sta	yoffs
+	and	#xsize/2 - 1
+	sta	cmpx
+	txa
+	and	#xsize - 1
+	cmp	cmpx:#0
+	bcc	End
+	lda	yoffs:Rnd1
+	and	#ysize/2 - 1
+	sta	cmpy
+	tya
+	and	#ysize - 1
+	cmp	cmpy:#0
+	bcc	End
+	lda	#'.'		; Floor
+	rts
+End:
+.endmacro
+
 .proc _RenderTile
 	jsr	RenderBorder
 	jsr	RenderMonster
@@ -702,41 +756,6 @@ NotFound:
 	ldy	Y
 	rts
 .endproc
-
-; A simple parametric room
-.macro	RenderRoom xsize, ysize, chance
-	.local	End
-	txa
-	and	#-xsize	; block size X: $f0 = 16, $f8 = 8, $fc = 4, etc
-	HashA
-	sta	xc
-
-	tya
-	and	#-ysize	; block size Y: $f0 = 16, $f8 = 8, $fc = 4, etc
-	eor	xc:#0
-	HashAwithM	PlayerZ
-
-	cmp	#256 * chance	; block chance: $40:$100 = 1:4
-	bcs	End
-
-	sta	yoffs
-	and	#xsize/2 - 1
-	sta	cmpx
-	txa
-	and	#xsize - 1
-	cmp	cmpx:#0
-	bcc	End
-	lda	yoffs:Rnd1
-	and	#ysize/2 - 1
-	sta	cmpy
-	tya
-	and	#ysize - 1
-	cmp	cmpy:#0
-	bcc	End
-	lda	#'.'		; Floor
-	rts
-End:
-.endmacro
 	
 ;----------------------------------------------------------
 ;
@@ -910,22 +929,9 @@ CommandTable:
 
 ;----------------------------------------------------------
 ;
-;	Game specific macros
+;	Game UI
 ;
 ;----------------------------------------------------------
-
-; Prints a constant string to the message bar with -more- if needed
-.macro	PrintMessage	string
-	.local	Text, End
-	mov16	#Text, Message
-	mov	#End - Text, MessageSize
-	
-	jsr	_PrintMessage
-	jmp	End
-Text:	.byte	string
-	
-End:	
-.endmacro
 
 _more:	.byte "-more-"
 
