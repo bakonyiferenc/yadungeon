@@ -533,16 +533,16 @@ SMC _screenHi, { lda #SMC_Value }
 	sta	screen+1
 
 SMC _y, { ldy #SMC_Value }
-y:	dey
+yloop:	dey
 SMC _x, { ldx #SMC_Value }
-x:	dex
+xloop:	dex
 _tile:	jsr	RenderTile
 	sta	screen:SCREENADDR, x
 SMC _ox, { cpx #SMC_Value }
-	bne	x
+	bne	xloop
 	add16	#SCREENW, screen
 SMC _oy, { cpy #SMC_Value }
-	bne	y
+	bne	yloop
 	rts
 .endproc
 
@@ -577,17 +577,17 @@ SMC _oy, { cpy #SMC_Value }
 ;----------------------------------------------------------
 
 .proc SpawnMonster
-X = ZP_FREE0
-Y = ZP_FREE1
-	stx	X
-	sty	Y
+_X = ZP_FREE0
+_Y = ZP_FREE1
+	stx	_X
+	sty	_Y
 
 	ldx	MonsterCnt
 	inc	MonsterCnt
 	ldy	MonsterPtr
 	inc	MonsterPtr
-	mov	X, {MonsterX, y}
-	mov	Y, {MonsterY, y}
+	mov	_X, {MonsterX, y}
+	mov	_Y, {MonsterY, y}
 	mov	PlayerZ, {MonsterZ, y}
 	mov	#255, {MonsterHP, y}	; Max HP
 	mov	#0, {MonsterState1, y}
@@ -599,8 +599,8 @@ Y = ZP_FREE1
 	sta	LastMonster
 	sty	LastMonsterIdx
 
-	ldx	X
-	ldy	Y
+	ldx	_X
+	ldy	_Y
 	rts
 .endproc
 
@@ -725,11 +725,11 @@ End:	rts
 
 ; Find an existing monster here
 .proc RenderMonster
-X = 	ZP_FREE0
-Y = 	ZP_FREE1
+_X = 	ZP_FREE0
+_Y = 	ZP_FREE1
 
-	stx	X
-	sty	Y
+	stx	_X
+	sty	_Y
 
 	ldx	MonsterCnt
 	beq	NotFound
@@ -737,10 +737,10 @@ Loop:	dex
 	lda	MonsterCache, x
 	tay
 	lda	MonsterX, y
-	cmp	X
+	cmp	_X
 	bne	Next
 	lda	MonsterY, y
-	cmp	Y
+	cmp	_Y
 	bne	Next
 
 Found:	lda	MonsterHP, y
@@ -749,15 +749,15 @@ Found:	lda	MonsterHP, y
 Alive:	lda	Monster, y
 	sta	LastMonster
 	sty	LastMonsterIdx
-	ldx	X
-	ldy	Y
+	ldx	_X
+	ldy	_Y
 	rts
 
 Next:	cpx	#0
 	bne	Loop
 NotFound:
-	ldx	X
-	ldy	Y
+	ldx	_X
+	ldy	_Y
 	rts
 .endproc
 	
