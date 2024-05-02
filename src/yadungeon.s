@@ -126,7 +126,7 @@ SMC MainLoop, { jsr QuickStats }
 	lda	#BLACK
 	;sta	$d020
 	;sta	$d021
-	Print	"\$0e\$9b\$93Welcome to YAD!\nPress any key!\n"	; Lowercase, lightgray on black, clear screen
+	Print	"\x0e\x9b\x93Welcome to YAD!\nPress any key!\n"	; Lowercase, lightgray on black, clear screen
 	GetKey
 	PrintC	$93		; clr
 	jsr	NewGame

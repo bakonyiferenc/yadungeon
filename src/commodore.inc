@@ -1,7 +1,7 @@
 .ifndef _COMMODORE_INC_
 _COMMODORE_INC_ = 1
 
-.feature force_range
+.feature force_range, string_escapes
 
 ;----------------------------------------------------------
 ;
