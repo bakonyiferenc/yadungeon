@@ -993,15 +993,16 @@ CommandTable:
 ;
 ;----------------------------------------------------------
 
-_more:	.byte "-more-"
+.define	__more "-more-"
+_more:	.byte __more
 
 .proc _PrintMessage
 	lda	MessageCursor
 	clc
 	SMC_OperateOnValue	adc, MessageSize
-	cmp	#SCREENW - _more.size
+	cmp	#SCREENW - .strlen(__more)
 	bcc	:+
-	Copy	_more, SCREENADDR + SCREENW - _more.size, _more.size
+	Copy	_more, SCREENADDR + SCREENW - .strlen(__more), .strlen(__more)
 	GetKey
 	jsr	ClearMessage
 :	ldx	#0
