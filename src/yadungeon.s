@@ -14,15 +14,45 @@
 
 ;----------------------------------------------------------
 ;
-;	Game UI specific macros
+;	Game UI messages
 ;
 ;----------------------------------------------------------
+
+.define	__more "-more-"
+_more:	.byte __more
+
+.proc _PrintMessage
+	SMC_LoadLowByte	MessageCursor
+	clc
+	SMC_OperateOnValue	adc, MessageSize
+	cmp	#SCREENW - .strlen(__more)
+	bcc	:+
+	Copy	_more, SCREENADDR + SCREENW - .strlen(__more), .strlen(__more)
+	GetKey
+	jsr	ClearMessage
+:	ldx	#0
+Message:	lda	SMC_AbsAdr, x
+SMC MessageCursor, { sta SCREENADDR }
+	SMC_OperateOnLowByte	dec, MessageCursor
+	inx
+SMC MessageSize, { cpx #SMC_Value }
+	bne	:-
+	SMC_OperateOnLowByte	inc, MessageCursor
+	SMC_LoadLowByte	MessageCursor
+	rts
+.endproc
+
+.proc	ClearMessage
+	Fill	SCREENADDR, ' ', SCREENW
+	SMC_TransferLowByte	MessageCursor, 0
+	rts
+.endproc
 
 ; Prints a constant string to the message bar with -more- if needed
 .macro	PrintMessage	string
 	.local	Text, End
-	mov16	#Text, Message
-	mov	#End - Text, MessageSize
+	mov16	#Text, _PrintMessage::Message+1
+	mov	#End - Text, _PrintMessage::MessageSize+1
 
 	jsr	_PrintMessage
 	jmp	End
@@ -992,36 +1022,6 @@ CommandTable:
 ;	Game UI
 ;
 ;----------------------------------------------------------
-
-.define	__more "-more-"
-_more:	.byte __more
-
-.proc _PrintMessage
-	lda	MessageCursor
-	clc
-	SMC_OperateOnValue	adc, MessageSize
-	cmp	#SCREENW - .strlen(__more)
-	bcc	:+
-	Copy	_more, SCREENADDR + SCREENW - .strlen(__more), .strlen(__more)
-	GetKey
-	jsr	ClearMessage
-:	ldx	#0
-:	lda	Message:$beef, x
-	sta	MessageCursor:SCREENADDR
-	inc	MessageCursor
-	inx
-SMC MessageSize, { cpx #SMC_Value }
-	bne	:-
-	inc	MessageCursor
-	lda	MessageCursor
-	rts
-.endproc
-
-.proc	ClearMessage
-	Fill	SCREENADDR, ' ', SCREENW
-	mov	#0, MessageCursor
-	rts
-.endproc
 
 ; Prints a char at given scene coordinates
 ; X, Y: scene relative coordinates, A: character to print
