@@ -6,4 +6,6 @@ _C128_INC_ = 1
 SCREENW	=	80
 SCREENH	=	25
 
+BLACK = 0
+
 .endif  ; _C128_INC_
