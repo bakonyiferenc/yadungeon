@@ -1027,10 +1027,12 @@ CommandTable:
 ; X, Y: scene relative coordinates, A: character to print
 .proc	PrintSceneTile
 	SMC_StoreValue	char
-	mov	{SceneLo, y}, pos
-	mov	{SceneHi, y}, pos+1
+	lda	SceneLo, y
+	SMC_StoreLowByte	pos
+	lda	SceneHi, y
+	SMC_StoreHighByte	pos
 SMC char, { lda #SMC_Value }
-	sta	pos:SCREENADDR, x
+SMC pos, { sta SCREENADDR, x }
 	rts
 .endproc
 
@@ -1046,10 +1048,12 @@ SMC char, { lda #SMC_Value }
 	sec
 	sbc	OffsetY
 	tay
-	mov	{SceneLo, y}, pos
-	mov	{SceneHi, y}, pos+1
+	lda	SceneLo, y
+	SMC_StoreLowByte	pos
+	lda	SceneHi, y
+	SMC_StoreHighByte	pos
 SMC char, { lda #SMC_Value }
-	sta	pos:SCREENADDR, x
+SMC pos, { sta SCREENADDR, x }
 	rts
 .endproc
 
