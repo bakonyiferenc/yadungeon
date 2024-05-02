@@ -33,6 +33,36 @@ End:
 
 ;----------------------------------------------------------
 ;
+;	Hash macros
+;
+;----------------------------------------------------------
+
+.macro	HashA
+	sta	vector
+	lda	vector:Hash
+.endmacro
+
+.macro	HashM	addr
+	lda	addr
+	HashA
+.endmacro
+
+.macro	HashAwithM	addr
+	HashA
+	eor	addr
+	HashA
+.endmacro
+
+.macro	HashAwithX
+	eor	Hash,x
+.endmacro
+
+.macro	HashAwithY
+	eor	Hash,y
+.endmacro
+
+;----------------------------------------------------------
+;
 ;	Yet Another Dungeon
 ;
 ;----------------------------------------------------------
@@ -1138,30 +1168,6 @@ noEor:	sta	Hash, x
 	bne	Loop
 	rts
 .endproc
-
-.macro	HashA
-	sta	vector
-	lda	vector:Hash
-.endmacro
-
-.macro	HashM	addr
-	lda	addr
-	HashA
-.endmacro
-
-.macro	HashAwithM	addr
-	HashA
-	eor	addr
-	HashA
-.endmacro
-
-.macro	HashAwithX
-	eor	Hash,x
-.endmacro
-
-.macro	HashAwithY
-	eor	Hash,y
-.endmacro
 
 ;----------------------------------------------------------
 ;
