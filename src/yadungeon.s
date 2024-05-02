@@ -32,7 +32,7 @@ _more:	.byte __more
 	GetKey
 	jsr	ClearMessage
 :	ldx	#0
-Message:	lda	SMC_AbsAdr, x
+SMC Message, { lda SMC_AbsAdr, x }
 SMC MessageCursor, { sta SCREENADDR }
 	SMC_OperateOnLowByte	dec, MessageCursor
 	inx
@@ -45,15 +45,15 @@ SMC MessageSize, { cpx #SMC_Value }
 
 .proc	ClearMessage
 	Fill	SCREENADDR, ' ', SCREENW
-	SMC_TransferLowByte	MessageCursor, 0
+	SMC_TransferLowByte	_PrintMessage::MessageCursor, 0
 	rts
 .endproc
 
 ; Prints a constant string to the message bar with -more- if needed
 .macro	PrintMessage	string
 	.local	Text, End
-	mov16	#Text, _PrintMessage::Message+1
-	mov	#End - Text, _PrintMessage::MessageSize+1
+	SMC_TransferAddress	_PrintMessage::Message, #Text
+	SMC_TransferValue	_PrintMessage::MessageSize, #End - Text
 
 	jsr	_PrintMessage
 	jmp	End
