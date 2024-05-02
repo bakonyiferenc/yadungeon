@@ -972,12 +972,18 @@ Command_downstairs:
 CommandTable:
 .word	CommandSelf	; @
 .word	Command_a	; a
-.fillword	'l'-'b', CommandFoo
+.repeat	'l'-'b'
+.word	CommandFoo
+.endrep
 .word	Command_l
-.fillword	'q'-'m', CommandFoo
+.repeat	'q'-'m'
+.word	CommandFoo
+.endrep
 .word	Command_q
 .word	Command_r
-.fillword	'z'-'s', CommandFoo
+.repeat	'z'-'s'
+.word	CommandFoo
+.endrep
 .word	Command_z	; z
 
 
