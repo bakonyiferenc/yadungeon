@@ -1,6 +1,8 @@
 .ifndef _COMMODORE_INC_
 _COMMODORE_INC_ = 1
 
+.feature force_range
+
 ;----------------------------------------------------------
 ;
 ;	Kernal vectors
