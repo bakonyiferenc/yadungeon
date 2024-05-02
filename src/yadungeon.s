@@ -345,19 +345,19 @@ SMC ox, { sbc #SMC_Value }
 	tax			; SCENEW - (X - A) - 1
 	ldy	#SCENEW - 1
 MoveColumn:
-.for(var i = SCENEH - 1 ; i >= 0 ; i--) {
-	.var POS = SCREENADDR + SCENEOFFSET + i * SCREENW
+.repeat	::SCENEH, i
+	POS .set ::SCREENADDR + ::SCENEOFFSET + (::SCENEH - i) * ::SCREENW
 	mov	{POS,x}, {POS,y}
-}
+.endrep
 	dey
 	dex
 	bmi	Done
 	jmp	MoveColumn
 Done:	lda	#' '
 ClearColumn:
-.for(var i = SCENEH - 1 ; i >= 0 ; i--) {
-	sta	SCREENADDR + SCENEOFFSET + i * SCREENW, y
-}
+.repeat	::SCENEH, i
+	sta	SCREENADDR + SCENEOFFSET + (SCENEH - i) * SCREENW, y
+.endrep
 	dey
 	bmi	End
 	jmp	ClearColumn
@@ -375,19 +375,19 @@ SMC ox, { sbc #SMC_Value }
 	tax			; -SCENEW + (A - X)
 	ldy	#-SCENEW
 MoveColumn:
-.for(var i = SCENEH - 1 ; i >= 0 ; i--) {
-	.var POS = SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256
+.repeat	::SCENEH, i
+	POS .set ::SCREENADDR + ::SCENEOFFSET + (::SCENEH - i) * ::SCREENW + ::SCENEW - 256
 	mov	{POS,x}, {POS,y}
-}
+.endrep
 	iny
 	inx
 	bpl	Done
 	jmp	MoveColumn
 Done:	lda	#' '
 ClearColumn:
-.for(var i = SCENEH - 1 ; i >= 0 ; i--) {
-	sta	SCREENADDR + SCENEOFFSET + i * SCREENW + SCENEW - 256, y
-}
+.repeat	::SCENEH, i
+	sta	SCREENADDR + SCENEOFFSET + (SCENEH - i) * SCREENW + SCENEW - 256, y
+.endrep
 	iny
 	bpl	End
 	jmp	ClearColumn
@@ -395,28 +395,28 @@ End:	jmp	Scrolled
 .endproc
 
 .macro	ScrollDownBy	n, exit
-.for(var i = SCENEH - 1 ; i >= n ; i--) {
-	.var POS1 = SCREENADDR + SCENEOFFSET + (i - n) * SCREENW - 1
-	.var POS2 = SCREENADDR + SCENEOFFSET +  i      * SCREENW - 1
+.repeat	::SCENEH - n, i
+	POS1 .set ::SCREENADDR + ::SCENEOFFSET + (::SCENEH - i - n) * ::SCREENW - 1
+	POS2 .set ::SCREENADDR + ::SCENEOFFSET + (::SCENEH - i)     * ::SCREENW - 1
 	mov	{POS1,x}, {POS2,x}
-}
+.endrep
 	lda	#' '
-.for(var i = n - 1 ; i >= 0 ; i--) {
-	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
-}
+.repeat	n, i
+	sta	SCREENADDR + SCENEOFFSET + (n -i) * SCREENW - 1, x
+.endrep
 	jmp	exit
 .endmacro
 
 .macro ScrollUpBy	n, exit
-.for(var i = 0 ; i < SCENEH - n ; i++) {
-	.var POS1 = SCREENADDR + SCENEOFFSET + (i + n) * SCREENW - 1
-	.var POS2 = SCREENADDR + SCENEOFFSET +  i      * SCREENW - 1
+.repeat	::SCENEH - n, i
+	POS1 .set ::SCREENADDR + ::SCENEOFFSET + (i - 1 + n) * ::SCREENW - 1
+	POS2 .set ::SCREENADDR + ::SCENEOFFSET + (i - 1)     * ::SCREENW - 1
 	mov	{POS1,x}, {POS2,x}
-}
+.endrep
 	lda	#' '
-.for(var i = SCENEH - n ; i < SCENEH ; i++) {
-	sta	SCREENADDR + SCENEOFFSET + i * SCREENW - 1, x
-}
+.repeat	n, i
+	sta	SCREENADDR + SCENEOFFSET + (SCENEH - n + i - 1) * SCREENW - 1, x
+.endrep
 	jmp	exit
 .endmacro
 
@@ -1016,9 +1016,13 @@ SMC char, { lda #SMC_Value }
 .endproc
 
 SceneLo:
-.for(var i = SCENEH - 1 ; i >= 0 ; i--) .byte <(SCREENADDR + SCENEOFFSET + i * SCREENW)
+.repeat	::SCENEH, i
+.byte .lobyte(SCREENADDR + SCENEOFFSET + (SCENEH - i) * SCREENW)
+.endrep
 SceneHi:
-.for(var i = SCENEH - 1 ; i >= 0 ; i--) .byte >(SCREENADDR + SCENEOFFSET + i * SCREENW)
+.repeat	::SCENEH, i
+.byte .hibyte(SCREENADDR + SCENEOFFSET + (SCENEH - i) * SCREENW)
+.endrep
 
 ;----------------------------------------------------------
 ;
