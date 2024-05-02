@@ -11,6 +11,7 @@
 .endif
 
 .include	"smc.inc"
+.include	"opcodes.inc"
 
 ;----------------------------------------------------------
 ;
@@ -104,8 +105,7 @@ vector:	lda	Hash
 .segment "CODE"
 
 Start:	jsr	Init
-SMC MainLoop, nop
-	jsr	QuickStats
+SMC MainLoop, { jsr QuickStats }
 ;	jsr	DrawScene
 	jsr	PlayersTurn
 	jsr	MonstersTurn
@@ -212,7 +212,7 @@ Alive:	rts
 ;----------------------------------------------------------
 
 .proc	QuitGame
-	mov	#RTS, MainLoop
+	SMC_TransferOpcode	MainLoop, OPC_RTS
 	rts
 .endproc
 
@@ -569,25 +569,10 @@ Scrolled:
 ;----------------------------------------------------------
 
 .proc	DrawScene
-	mov	#JSR_ABS, _tile
-	mov16	#_RenderTile, _tile+1
-	jmp	_DrawScene
-.endproc
+	SMC_TransferOpcode	rendertile1, OPC_JSR_abs
+	SMC_TransferAddress	rendertile1, #_RenderTile
 
-;----------------------------------------------------------
-;
-; Clears the whole scene
-;
-;----------------------------------------------------------
-
-.proc	ClearScene
-	mov	#NOP, _tile
-	mov	#LDA_IMM, _tile+1
-	mov	#' ', _tile+2
-	; fall through _DrawScene
-.endproc
-
-.proc _DrawScene
+_DrawScene:
 SMC _screenLo, { lda #SMC_Value }
 	SMC_StoreLowByte	screen
 SMC _screenHi, { lda #SMC_Value }
@@ -597,7 +582,8 @@ SMC _y, { ldy #SMC_Value }
 yloop:	dey
 SMC _x, { ldx #SMC_Value }
 xloop:	dex
-_tile:	jsr	RenderTile
+SMC rendertile1, { nop }
+SMC rendertile2, { lda #SMC_Value }
 SMC screen, { sta SMC_AbsAdr, x }
 SMC _ox, { cpx #SMC_Value }
 	bne	xloop
@@ -616,6 +602,19 @@ SMC _oy, { cpy #SMC_Value }
 
 ;----------------------------------------------------------
 ;
+; Clears the whole scene
+;
+;----------------------------------------------------------
+
+.proc	ClearScene
+	SMC_TransferOpcode	DrawScene::rendertile1, OPC_NOP
+	SMC_TransferOpcode	DrawScene::rendertile2, OPC_LDA_imm
+	SMC_TransferValue	DrawScene::rendertile2, ' '
+	jmp	DrawScene::_DrawScene
+.endproc
+
+;----------------------------------------------------------
+;
 ; Updates aux variables. 
 ; Must be called when Offset{XY} was changed.
 ;
@@ -625,26 +624,26 @@ SMC _oy, { cpy #SMC_Value }
 	lda	#<(SCREENADDR + SCENEOFFSET)
 	sec
 	sbc	OffsetX
-	SMC_StoreValue	_DrawScene::_screenLo
+	SMC_StoreValue	DrawScene::_screenLo
 
 	lda	#>(SCREENADDR + SCENEOFFSET)
 	sbc	#0
-	SMC_StoreValue	_DrawScene::_screenHi
+	SMC_StoreValue	DrawScene::_screenHi
 
 	lda	#SCENEW
 	clc
 	adc	OffsetX
-	SMC_StoreValue	_DrawScene::_x
+	SMC_StoreValue	DrawScene::_x
 
 	lda	#SCENEH
 	clc
 	adc	OffsetY
-	SMC_StoreValue	_DrawScene::_y
+	SMC_StoreValue	DrawScene::_y
 
 	lda	OffsetX
-	SMC_StoreValue	_DrawScene::_ox
+	SMC_StoreValue	DrawScene::_ox
 	lda	OffsetY
-	SMC_StoreValue	_DrawScene::_oy
+	SMC_StoreValue	DrawScene::_oy
 	rts
 .endproc
 
