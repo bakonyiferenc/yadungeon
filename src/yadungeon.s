@@ -622,16 +622,29 @@ SMC _oy, { cpy #SMC_Value }
 ;----------------------------------------------------------
 
 .proc	OffsetUpdated
-	sub	OffsetX, #<(SCREENADDR + SCENEOFFSET), _DrawScene::_screenLo
+	lda	#<(SCREENADDR + SCENEOFFSET)
+	sec
+	sbc	OffsetX
+	SMC_StoreValue	_DrawScene::_screenLo
+
 	lda	#>(SCREENADDR + SCENEOFFSET)
 	sbc	#0
 	SMC_StoreValue	_DrawScene::_screenHi
 
-	add	OffsetX, #SCENEW, _DrawScene::_x
-	add	OffsetY, #SCENEH, _DrawScene::_y
+	lda	#SCENEW
+	clc
+	adc	OffsetX
+	SMC_StoreValue	_DrawScene::_x
 
-	mov	OffsetX, _DrawScene::_ox
-	mov	OffsetY, _DrawScene::_oy
+	lda	#SCENEH
+	clc
+	adc	OffsetY
+	SMC_StoreValue	_DrawScene::_y
+
+	lda	OffsetX
+	SMC_StoreValue	_DrawScene::_ox
+	lda	OffsetY
+	SMC_StoreValue	_DrawScene::_oy
 	rts
 .endproc
 
