@@ -156,7 +156,7 @@ skip:
 	lda arg2
 	sec
 	sbc arg1
-	sta	tar
+	sta	dest
 .endmacro
 
 .macro  inc16   arg
