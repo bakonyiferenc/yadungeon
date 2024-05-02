@@ -1207,17 +1207,17 @@ noEor:	sta	Hash, x
 ;----------------------------------------------------------
 
 .align	256
-Monster:	.fill 256, 0
-MonsterX:	.fill 256, 0
-MonsterY:	.fill 256, 0
-MonsterZ:	.fill 256, 255	; Current dungeon: 0 = wilderness, 1-7 = cities, 8-255 = dungeons
-MonsterHP:	.fill 256, 0
-MonsterState1:	.fill 256, 0	; aggroed, sleeping, confused, stunned, feared, afraid, blind, deaf
-MonsterState2:	.fill 256, 0	; poisoned, bleeding, fast/slow/paralyzed, drugged, invulnerable
+Monster:	.res 256, 0
+MonsterX:	.res 256, 0
+MonsterY:	.res 256, 0
+MonsterZ:	.res 256, 255	; Current dungeon: 0 = wilderness, 1-7 = cities, 8-255 = dungeons
+MonsterHP:	.res 256, 0
+MonsterState1:	.res 256, 0	; aggroed, sleeping, confused, stunned, feared, afraid, blind, deaf
+MonsterState2:	.res 256, 0	; poisoned, bleeding, fast/slow/paralyzed, drugged, invulnerable
 
-Rnd1:		.fill 256, 0
-Rnd2:		.fill 256, 0
-Hash:		.fill 256, 0
+Rnd1:		.res 256, 0
+Rnd2:		.res 256, 0
+Hash:		.res 256, 0
 Seed:		.word	0
 
 MonsterPtr:	.byte	0	; Points to next free monster slot
@@ -1249,4 +1249,4 @@ LastMonsterIdx:	.byte 	0	; Index of most recent monster
 
 .align 256
 
-MonsterCache:	.fill 256, 0	; Pointers to monsters at current dungeon
+MonsterCache:	.res 256, 0	; Pointers to monsters at current dungeon
