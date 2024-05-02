@@ -851,14 +851,20 @@ IllegalCommand:
 	clc
 	rts
 
-.macro	MovePlayerBy	x, y
+.macro	MovePlayerBy	dx, dy
 	.local	Wall, Floor
 	ldx	PlayerX
 	ldy	PlayerY
-.if (x == -1)	dex
-.if (x ==  1)	inx
-.if (y == -1)	dey
-.if (y ==  1)	iny
+.if dx = -1
+	dex
+.elseif dx = 1
+	inx
+.endif
+.if dy = -1
+	dey
+.elseif dy =  1
+	iny
+.endif
 	jsr	RenderTile
 	cmp	#'.'
 	beq	Floor
@@ -869,10 +875,16 @@ IllegalCommand:
 	jmp	_Something
 Wall:	jmp	_Wall
 Floor:	jsr	HidePlayer
-.if (x == -1)	dec	PlayerX
-.if (x ==  1)	inc	PlayerX
-.if (y == -1)	dec	PlayerY
-.if (y ==  1)	inc	PlayerY
+.if dx = -1
+	dec	PlayerX
+.elseif dx = 1
+	inc	PlayerX
+.endif
+.if dy = -1
+	dec	PlayerY
+.elseif dy = 1
+	inc	PlayerY
+.endif
 	jmp	_MovePlayerBy
 .endmacro
 
