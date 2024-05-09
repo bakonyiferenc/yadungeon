@@ -13,7 +13,7 @@
 			"extensions": [
 				"ms-vscode.cpptools-extension-pack",
 				"ms-vscode.makefile-tools",
-				"ms-azuretools.vscode-docker"
+				"rosc.vs64"
 			]
 		}
 	},
