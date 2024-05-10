@@ -13,7 +13,8 @@
 			"extensions": [
 				"ms-vscode.cpptools-extension-pack",
 				"ms-vscode.makefile-tools",
-				"rosc.vs64"
+				"rosc.vs64",
+				"yzhang.markdown-all-in-one"
 			]
 		}
 	},
