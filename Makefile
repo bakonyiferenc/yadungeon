@@ -41,6 +41,10 @@ LDFLAGS =
 # Default: src
 SRCDIR :=
  
+# Path to the subdirectory containing C and ASM unit test sources.
+# Default: SCRDIR/test
+TESTDIR :=
+
 # Path to the directory where object files are to be stored (inside respective target subdirectories).
 # Default: obj
 OBJDIR :=
@@ -93,24 +97,28 @@ define _listing_
   CFLAGS += --listing $$(@:.o=.lst)
   ASFLAGS += --listing $$(@:.o=.lst)
   REMOVES += $(addsuffix .lst,$(basename $(OBJECTS)))
+  REMOVES += $(addsuffix .lst,$(basename $(TEST_OBJECTS)))
 endef
  
 # Linker flags for generating map file
 define _mapfile_
   LDFLAGS += --mapfile $$@.map
   REMOVES += $(PROGRAM).map
+  REMOVES += $(UNITTEST).map
 endef
  
 # Linker flags for generating VICE label file
 define _labelfile_
   LDFLAGS += -Ln $$@.lbl
   REMOVES += $(PROGRAM).lbl
+  REMOVES += $(UNITTEST).lbl
 endef
  
 # Linker flags for generating a debug file
 define _debugfile_
   LDFLAGS += -Wl --dbgfile,$$@.dbg
   REMOVES += $(PROGRAM).dbg
+  REMOVES += $(UNITTEST).dbg
 endef
  
 ###############################################################################
@@ -135,6 +143,12 @@ ifeq ($(SRCDIR),)
   SRCDIR := src
 endif
  
+# Presume the C and asm unit test files to be located in the subdirectory 'test'.
+# Set TESTDIR to override.
+ifeq ($(TESTDIR),)
+  TESTDIR := $(SRCDIR)/test
+endif
+
 # Presume the object and dependency files to be located in the subdirectory
 # 'obj' (which will be created). Set OBJDIR to override.
 ifeq ($(OBJDIR),)
@@ -209,6 +223,9 @@ ifeq ($(words $(TARGETLIST)),1)
  
 # Set PROGRAM to something like 'myprog.c64'.
 override PROGRAM := $(PROGRAM).$(TARGETLIST)
+
+# Set UNITTEST to something like 'test_myprog.c64'.
+UNITTEST := test_$(PROGRAM)
  
 # Set SOURCES to something like 'src/foo.c src/bar.s'.
 # Use of assembler files with names ending differently than .s is deprecated!
@@ -224,11 +241,18 @@ SOURCES += $(wildcard $(SRCDIR)/$(TARGETLIST)/*.s)
 SOURCES += $(wildcard $(SRCDIR)/$(TARGETLIST)/*.asm)
 SOURCES += $(wildcard $(SRCDIR)/$(TARGETLIST)/*.a65)
  
+# Set TEST_SOURCES to something like 'src/test/test_foo.c src/test/test_bar.s'.
+TEST_SOURCES := $(patsubst $(SRCDIR)/%,$(TESTDIR)/%, $(foreach file,$(SOURCES),$(dir $(file))test_$(notdir $(file))))
+
 # Set OBJECTS to something like 'obj/c64/foo.o obj/c64/bar.o'.
 OBJECTS := $(addsuffix .o,$(basename $(addprefix $(TARGETOBJDIR)/,$(notdir $(SOURCES)))))
+
+# Set TEST_OBJECTS to something like 'obj/c64/test_foo.o obj/c64/test_bar.o'.
+TEST_OBJECTS := $(addsuffix .o,$(basename $(addprefix $(TARGETOBJDIR)/,$(notdir $(TEST_SOURCES)))))
  
 # Set DEPENDS to something like 'obj/c64/foo.d obj/c64/bar.d'.
 DEPENDS := $(OBJECTS:.o=.d)
+DEPENDS += $(TEST_OBJECTS:.o=.d)
  
 # Add to LIBS something like 'src/foo.lib src/c64/bar.lib'.
 LIBS += $(wildcard $(SRCDIR)/*.lib)
@@ -286,39 +310,44 @@ CC65TARGET := $(firstword $(subst .,$(SPACE),$(TARGETLIST)))
 $(TARGETOBJDIR):
 	$(call MKDIR,$@)
  
-vpath %.c $(SRCDIR)/$(TARGETLIST) $(SRCDIR)
+vpath %.c $(SRCDIR)/$(TARGETLIST) $(SRCDIR) $(TESTDIR)
  
 $(TARGETOBJDIR)/%.o: %.c | $(TARGETOBJDIR)
 	$(CC) -t $(CC65TARGET) -c --create-dep $(@:.o=.d) $(CFLAGS) -o $@ $<
  
-vpath %.s $(SRCDIR)/$(TARGETLIST) $(SRCDIR)
+vpath %.s $(SRCDIR)/$(TARGETLIST) $(SRCDIR) $(TESTDIR)
  
 $(TARGETOBJDIR)/%.o: %.s | $(TARGETOBJDIR)
 	$(CC) -t $(CC65TARGET) -c --create-dep $(@:.o=.d) $(ASFLAGS) -o $@ $<
  
-vpath %.asm $(SRCDIR)/$(TARGETLIST) $(SRCDIR)
+vpath %.asm $(SRCDIR)/$(TARGETLIST) $(SRCDIR) $(TESTDIR)
  
 $(TARGETOBJDIR)/%.o: %.asm | $(TARGETOBJDIR)
 	$(CC) -t $(CC65TARGET) -c --create-dep $(@:.o=.d) $(ASFLAGS) -o $@ $<
  
-vpath %.a65 $(SRCDIR)/$(TARGETLIST) $(SRCDIR)
+vpath %.a65 $(SRCDIR)/$(TARGETLIST) $(SRCDIR) $(TESTDIR)
  
 $(TARGETOBJDIR)/%.o: %.a65 | $(TARGETOBJDIR)
 	$(CC) -t $(CC65TARGET) -c --create-dep $(@:.o=.d) $(ASFLAGS) -o $@ $<
  
 $(PROGRAM): $(CONFIG) $(OBJECTS) $(LIBS)
 	$(CC) -t $(CC65TARGET) $(LDFLAGS) -o $@ $(patsubst %.cfg,-C %.cfg,$^)
- 
-test: $(PROGRAM)
+
+$(UNITTEST): $(CONFIG) $(TEST_OBJECTS) $(OBJECTS) $(LIBS)
+	$(CC) -t $(CC65TARGET) $(LDFLAGS) -o $@ $(patsubst %.cfg,-C %.cfg,$^)
+
+test: $(UNITTEST) $(PROGRAM)
 	$(PREEMUCMD)
 	$(EMUCMD) $<
 	$(POSTEMUCMD)
  
 clean:
 	$(call RMFILES,$(OBJECTS))
+	$(call RMFILES,$(TEST_OBJECTS))
 	$(call RMFILES,$(DEPENDS))
 	$(call RMFILES,$(REMOVES))
 	$(call RMFILES,$(PROGRAM))
+	$(call RMFILES,$(UNITTEST))
  
 else # $(words $(TARGETLIST)),1
  
